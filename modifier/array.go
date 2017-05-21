@@ -272,27 +272,50 @@ func (m *Modifier) deleteFromArray(arrayAddr, index uint64) (uint64, error) {
 		return m.Append(chunk.Pack(chunk.ArrayLeafType, refs, nil))
 	case chunk.ArrayNodeType:
 
-		dataCopy := make([]byte, len(data))
-		copy(dataCopy, data)
-
+		sizes := make([]uint64, len(refs))
+		childIndex := -1
+		level := binary.BigEndian.Uint16(data)
 		for i := range refs {
-			size := binary.BigEndian.Uint64(dataCopy[i*8+2:])
-			if index < size {
-
-				newChildRef, err := m.deleteFromArray(refs[i], index)
-				if err != nil {
-					return 0, err
-				}
-
-				binary.BigEndian.PutUint64(dataCopy[i*8+2:], size-1)
-				refs[i] = newChildRef
-
-				return m.Append(chunk.Pack(chunk.ArrayNodeType, refs, dataCopy))
-
-			}
-			index -= size
+			size := binary.BigEndian.Uint64(data[i*8+2:])
+			sizes[i] = size
 		}
-		return 0, ErrNotFound
+
+		for i, s := range sizes {
+			if index < s {
+				childIndex = i
+				break
+			}
+			index -= s
+		}
+
+		if childIndex < 0 {
+			return 0, ErrNotFound
+		}
+
+		newChildRef, err := m.deleteFromArray(refs[childIndex], index)
+		if err != nil {
+			return 0, err
+		}
+
+		refs[childIndex] = newChildRef
+
+		sizes[childIndex]--
+		if sizes[childIndex] == 0 {
+			refs = append(refs[:childIndex], refs[childIndex+1:]...)
+			sizes = append(sizes[:childIndex], sizes[childIndex+1:]...)
+			// newChildRef points to an empty array, use this!
+			refs = append([]uint64{newChildRef}, refs...)
+			sizes = append([]uint64{0}, sizes...)
+		}
+
+		newData := make([]byte, 2+len(refs)*8)
+		binary.BigEndian.PutUint16(newData, level)
+		for i, s := range sizes {
+			binary.BigEndian.PutUint64(newData[2+i*8:], s)
+		}
+
+		return m.Append(chunk.Pack(chunk.ArrayNodeType, refs, newData))
+
 	default:
 
 		return 0, fmt.Errorf("Deleting Array from chunk type %#v not yet implemented", t)

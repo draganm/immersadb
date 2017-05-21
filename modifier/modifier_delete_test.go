@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Modifier.Delete", func() {
