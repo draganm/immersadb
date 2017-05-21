@@ -1,10 +1,10 @@
 package modifier_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Prepend to array", func() {
@@ -98,7 +98,7 @@ var _ = Describe("Prepend to array", func() {
 						0, 0, 0, 0, 0, 0, 8, 102,
 						0, 0, 0, 0, 0, 0, 8, 82,
 						0, 0, 0, 0, 0, 0, 7, 222,
-						0, 1,
+						0, 2,
 						0, 0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 0, 0, 0, 0, 1,

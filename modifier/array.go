@@ -232,7 +232,7 @@ func (m *Modifier) prependArray(arrayAddr, valueAddr uint64) (uint64, error) {
 				binary.BigEndian.PutUint64(data[i*8+2:], s)
 			}
 
-			binary.BigEndian.PutUint16(data, uint16(1))
+			binary.BigEndian.PutUint16(data, uint16(level+1))
 			return m.Append(chunk.Pack(chunk.ArrayNodeType, refs, data))
 
 		}
