@@ -182,20 +182,23 @@ func (m *Modifier) prependArray(arrayAddr, valueAddr uint64) (uint64, error) {
 		return m.prependLeafArray(arrayAddr, valueAddr)
 	case chunk.ArrayNodeType:
 		level := binary.BigEndian.Uint16(data)
-		// maxForLevel := pow(maxArrayDegree, uint64(level+2))
 		maxForLowerLevel := pow(maxArrayDegree, level-1)
 		sizes := make([]uint64, len(refs))
 		for i := range refs {
 			sizes[i] = binary.BigEndian.Uint64(data[i*8+2:])
 		}
 
-		bucketIndex := len(refs) - 1
+		bucketIndex := 0
 
-		for i := len(sizes) - 1; i >= 0; i-- {
-			if sizes[i] < maxForLowerLevel {
+		for i, s := range sizes {
+			if s > 0 {
 				bucketIndex = i
 				break
 			}
+		}
+
+		if sizes[bucketIndex] >= maxForLowerLevel && bucketIndex > 0 {
+			bucketIndex--
 		}
 
 		if sizes[bucketIndex] == maxForLowerLevel {

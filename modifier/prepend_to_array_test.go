@@ -304,13 +304,11 @@ var _ = Describe("Prepend to array", func() {
 						})
 						It("Should a level 1 array node and two elements", func() {
 							Expect(s.Data()[lastAddr:]).To(Equal([]byte{
-								// empty hash
 								0, 0, 0, 4,
 								0, 20,
 								0, 0,
 								0, 0, 0, 4,
 
-								// two element array leaf
 								0, 0, 0, 20,
 								0, 30,
 								0, 2,
@@ -318,7 +316,6 @@ var _ = Describe("Prepend to array", func() {
 								0, 0, 0, 0, 0, 0, 1, 94,
 								0, 0, 0, 20,
 
-								// Array node pointing to two leafs
 								0, 0, 0, 70,
 								0, 31,
 								0, 4,
@@ -333,7 +330,6 @@ var _ = Describe("Prepend to array", func() {
 								0, 0, 0, 0, 0, 0, 0, 4,
 								0, 0, 0, 70,
 
-								// new root
 								0, 0, 0, 18,
 								0, 20,
 								0, 1,
