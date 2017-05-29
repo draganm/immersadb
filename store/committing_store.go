@@ -5,16 +5,17 @@ type CommitingStore struct {
 	chunks            [][]byte
 	chunkByAddress    map[uint64][]byte
 	storeStartAddress uint64
-	lastChunkAddress  uint64
+	storeEndAddress   uint64
 }
 
 func NewCommitingStore(store BulkAppendStore) *CommitingStore {
-	storeStartAddress := store.LastChunkAddress() + uint64(len(store.LastChunk())+8)
+	storeStartAddress := store.NextChunkAddress()
 
 	return &CommitingStore{
 		store:             store,
 		storeStartAddress: storeStartAddress,
 		chunkByAddress:    map[uint64][]byte{},
+		storeEndAddress:   storeStartAddress,
 	}
 }
 
@@ -25,20 +26,6 @@ func (cs *CommitingStore) Chunk(addr uint64) []byte {
 	return cs.chunkByAddress[addr]
 }
 
-func (cs *CommitingStore) LastChunk() []byte {
-	if cs.lastChunkAddress == 0 {
-		return cs.store.LastChunk()
-	}
-	return cs.chunkByAddress[cs.lastChunkAddress]
-}
-
-func (cs *CommitingStore) LastChunkAddress() uint64 {
-	if cs.lastChunkAddress == 0 {
-		return cs.store.LastChunkAddress()
-	}
-	return cs.lastChunkAddress
-}
-
 func (cs *CommitingStore) BytesInStore() uint64 {
 	bis := cs.store.BytesInStore()
 	for _, c := range cs.chunks {
@@ -47,19 +34,16 @@ func (cs *CommitingStore) BytesInStore() uint64 {
 	return bis
 }
 
+func (cs *CommitingStore) NextChunkAddress() uint64 {
+	return cs.storeEndAddress
+}
+
 func (cs *CommitingStore) Append(data []byte) (uint64, error) {
-
-	if cs.lastChunkAddress == 0 {
-		cs.lastChunkAddress = cs.storeStartAddress
-	} else {
-		ch := cs.chunkByAddress[cs.lastChunkAddress]
-		cs.lastChunkAddress = cs.lastChunkAddress + uint64(len(ch)) + 8
-	}
-
-	cs.chunkByAddress[cs.lastChunkAddress] = data
+	last := cs.storeEndAddress
+	cs.chunkByAddress[last] = data
 	cs.chunks = append(cs.chunks, data)
-
-	return cs.lastChunkAddress, nil
+	cs.storeEndAddress += uint64(len(data) + 8)
+	return last, nil
 }
 
 func (cs *CommitingStore) Commit() error {

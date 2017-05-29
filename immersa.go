@@ -25,8 +25,17 @@ func New(path string, chunkSize int) (*ImmersaDB, error) {
 		return nil, err
 	}
 
-	if s.LastChunkAddress() == 0 {
-		s.Append(chunk.Pack(chunk.HashLeafType, nil, nil))
+	if s.NextChunkAddress() == 0 {
+		addr, err := s.Append(chunk.Pack(chunk.HashLeafType, nil, nil))
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = s.Append(chunk.NewCommitChunk(addr))
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	return &ImmersaDB{
@@ -41,11 +50,15 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 
 	cs := store.NewCommitingStore(i.store)
 
-	m := modifier.New(cs, i.chunkSize, cs.LastChunkAddress())
+	_, refs, _ := chunk.Parts(cs.Chunk(cs.NextChunkAddress() - chunk.CommitChunkSize))
+
+	m := modifier.New(cs, i.chunkSize, refs[0])
 	err := t(m)
 	if err != nil {
 		return err
 	}
+
+	cs.Append(chunk.NewCommitChunk(m.RootAddress))
 
 	err = cs.Commit()
 	if err != nil {
@@ -61,12 +74,12 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
-	m := modifier.New(i.store, i.chunkSize, i.store.LastChunkAddress())
-	return t(m)
+	return i.readTransaction(t)
 }
 
 func (i *ImmersaDB) readTransaction(t func(modifier.EntityReader) error) error {
-	m := modifier.New(i.store, i.chunkSize, i.store.LastChunkAddress())
+	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
+	m := modifier.New(i.store, i.chunkSize, refs[0])
 	return t(m)
 }
 

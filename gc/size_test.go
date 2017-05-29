@@ -23,8 +23,11 @@ var _ = Describe("Size", func() {
 
 	Context("When storage contains an empty hash", func() {
 		BeforeEach(func() {
-			_, err := s.Append(chunk.Pack(chunk.HashLeafType, nil, nil))
+			addr, err := s.Append(chunk.Pack(chunk.HashLeafType, nil, nil))
 			Expect(err).ToNot(HaveOccurred())
+			_, err = s.Append(chunk.NewCommitChunk(addr))
+			Expect(err).ToNot(HaveOccurred())
+
 		})
 
 		It("Should return size of the hash chunk", func() {
@@ -33,12 +36,14 @@ var _ = Describe("Size", func() {
 
 		Context("When I add a value to the hash", func() {
 			BeforeEach(func() {
-				m := modifier.New(s, 1024, s.LastChunkAddress())
+				m := modifier.New(s, 1024, chunk.LastCommitRootHashAddress(s))
 				Expect(m.CreateArray(modifier.DBPath{"test"})).To(Succeed())
+				_, err := s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("Should return size of the hash chunk", func() {
-				Expect(size).To(Equal(uint64(38)))
+			It("Should return size of the hash chunk and commit chunk", func() {
+				Expect(size).To(Equal(uint64(58)))
 			})
 
 		})

@@ -5,12 +5,15 @@ import "encoding/binary"
 type ChunkType uint16
 
 const ErrorType ChunkType = 0
-const DataType ChunkType = 1
-const DataHeaderType ChunkType = 2
-const HashLeafType ChunkType = 10
-const HashNodeType ChunkType = 11
-const ArrayLeafType ChunkType = 40
-const ArrayNodeType ChunkType = 41
+const CommitType ChunkType = 1
+const DataType ChunkType = 10
+const DataHeaderType ChunkType = 11
+const HashLeafType ChunkType = 20
+const HashNodeType ChunkType = 21
+const ArrayLeafType ChunkType = 30
+const ArrayNodeType ChunkType = 31
+
+const CommitChunkSize = uint64(8 + 2 + 2 + 8)
 
 func Type(chunk []byte) ChunkType {
 	if len(chunk) < 2 {

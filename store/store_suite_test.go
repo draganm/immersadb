@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
+	"github.com/draganm/immersadb/store"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/draganm/immersadb/store"
 
 	"testing"
 )
@@ -150,7 +150,7 @@ var _ = Describe("FileStore", func() {
 		})
 	})
 
-	Describe(".LastChunkAddress()", func() {
+	Describe(".NextChunkAddress()", func() {
 		var s *store.FileStore
 		BeforeEach(func() {
 			var err error
@@ -159,7 +159,7 @@ var _ = Describe("FileStore", func() {
 		})
 		Context("When there are no chunks in the store", func() {
 			It("Should return 0", func() {
-				Expect(s.LastChunkAddress()).To(Equal(uint64(0)))
+				Expect(s.NextChunkAddress()).To(Equal(uint64(0)))
 			})
 		})
 		Context("When there is one chunk in the store", func() {
@@ -167,8 +167,8 @@ var _ = Describe("FileStore", func() {
 				_, err := s.Append([]byte{1})
 				Expect(err).ToNot(HaveOccurred())
 			})
-			It("Should return 0", func() {
-				Expect(s.LastChunkAddress()).To(Equal(uint64(0)))
+			It("Should return length of the chunk", func() {
+				Expect(s.NextChunkAddress()).To(Equal(uint64(9)))
 			})
 		})
 		Context("When there are two chunks in the store", func() {
@@ -178,42 +178,8 @@ var _ = Describe("FileStore", func() {
 				_, err = s.Append([]byte{2})
 				Expect(err).ToNot(HaveOccurred())
 			})
-			It("Should return address of the second chang", func() {
-				Expect(s.LastChunkAddress()).To(Equal(uint64(9)))
-			})
-		})
-	})
-
-	Describe(".LastChunk()", func() {
-		var s *store.FileStore
-		BeforeEach(func() {
-			var err error
-			s, err = store.NewFileStore(dbFile)
-			Expect(err).ToNot(HaveOccurred())
-		})
-		Context("When there are no chunks in the store", func() {
-			It("Should return nil", func() {
-				Expect(s.LastChunk()).To(BeNil())
-			})
-		})
-		Context("When there is one chunk in the store", func() {
-			BeforeEach(func() {
-				_, err := s.Append([]byte{1})
-				Expect(err).ToNot(HaveOccurred())
-			})
-			It("Should return content of that chunk", func() {
-				Expect(s.LastChunk()).To(Equal([]byte{1}))
-			})
-		})
-		Context("When there are two chunks in the store", func() {
-			BeforeEach(func() {
-				_, err := s.Append([]byte{1})
-				Expect(err).ToNot(HaveOccurred())
-				_, err = s.Append([]byte{2})
-				Expect(err).ToNot(HaveOccurred())
-			})
-			It("Should return content of the last chunk", func() {
-				Expect(s.LastChunk()).To(Equal([]byte{2}))
+			It("Should return address after the second chunk", func() {
+				Expect(s.NextChunkAddress()).To(Equal(uint64(18)))
 			})
 		})
 	})

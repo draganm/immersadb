@@ -1,10 +1,10 @@
 package modifier_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("DataWriter", func() {
@@ -47,7 +47,7 @@ var _ = Describe("DataWriter", func() {
 			It("Should have written segments to storage", func() {
 				Expect(s.Data()).To(Equal([]byte{
 					0, 0, 0, 5,
-					0, 1,
+					0, 10,
 
 					0, 0,
 
@@ -55,7 +55,7 @@ var _ = Describe("DataWriter", func() {
 					0, 0, 0, 5,
 
 					0, 0, 0, 20,
-					0, 2,
+					0, 11,
 
 					0, 1,
 					0, 0, 0, 0, 0, 0, 0, 0,
@@ -108,7 +108,7 @@ var _ = Describe("DataWriter", func() {
 				Expect(s.Data()).To(Equal([]byte{
 					0, 0, 0, 16,
 					// type
-					0, 1,
+					0, 10,
 					// refs
 					0, 0,
 					// data
@@ -118,7 +118,7 @@ var _ = Describe("DataWriter", func() {
 
 					0, 0, 0, 8,
 					// type
-					0, 1,
+					0, 10,
 					// refs
 					0, 0,
 					// data
@@ -128,7 +128,7 @@ var _ = Describe("DataWriter", func() {
 
 					0, 0, 0, 28,
 					//type
-					0, 2,
+					0, 11,
 					// refs
 					0, 2,
 					0, 0, 0, 0, 0, 0, 0, 0,
@@ -183,28 +183,28 @@ var _ = Describe("DataWriter", func() {
 				Expect(s.Data()).To(Equal([]byte{
 					// data chunk
 					0, 0, 0, 20,
-					0, 1,
+					0, 10,
 					0, 0,
 					0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 					0, 0, 0, 20,
 
 					// data chunk
 					0, 0, 0, 20,
-					0, 1,
+					0, 10,
 					0, 0,
 					16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
 					0, 0, 0, 20,
 
 					// data chunk
 					0, 0, 0, 12,
-					0, 1,
+					0, 10,
 					0, 0,
 					32, 33, 34, 35, 36, 37, 38, 39,
 					0, 0, 0, 12,
 
 					// data header chunk
 					0, 0, 0, 36,
-					0, 2,
+					0, 11,
 					0, 3,
 					0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 28,

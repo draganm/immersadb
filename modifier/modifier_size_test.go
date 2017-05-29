@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Modifier.Size", func() {
@@ -19,16 +20,22 @@ var _ = Describe("Modifier.Size", func() {
 			// Hash Root Chunk
 			0, 0, 0, 4,
 			//
-			0, 10,
+			0, 20,
 			0, 0,
 			0, 0, 0, 4,
 		})
-		m = modifier.New(s, 8192, s.LastChunkAddress())
+		_, err = s.Append(chunk.NewCommitChunk(0))
+		Expect(err).ToNot(HaveOccurred())
+
+		m = modifier.New(s, 8192, chunk.LastCommitRootHashAddress(s))
 	})
 
 	Context("Hash", func() {
 		BeforeEach(func() {
 			Expect(m.CreateHash(modifier.DBPath{"test"})).To(Succeed())
+			_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+			Expect(err).ToNot(HaveOccurred())
+
 		})
 		var s uint64
 		JustBeforeEach(func() {

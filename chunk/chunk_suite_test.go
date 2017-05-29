@@ -1,9 +1,9 @@
 package chunk_test
 
 import (
+	"github.com/draganm/immersadb/chunk"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/draganm/immersadb/chunk"
 
 	"testing"
 )
@@ -23,7 +23,7 @@ var _ = Describe("Pack()", func() {
 		})
 		Context("When refs and data are both nil", func() {
 			It("Creates 4 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 0}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 0}))
 			})
 		})
 
@@ -32,7 +32,7 @@ var _ = Describe("Pack()", func() {
 				refs = []uint64{}
 			})
 			It("Creates 4 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 0}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 0}))
 			})
 		})
 
@@ -42,7 +42,7 @@ var _ = Describe("Pack()", func() {
 				d = []byte{}
 			})
 			It("Creates 4 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 0}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 0}))
 			})
 		})
 
@@ -52,7 +52,7 @@ var _ = Describe("Pack()", func() {
 				d = nil
 			})
 			It("Creates 12 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1}))
 			})
 		})
 
@@ -62,7 +62,7 @@ var _ = Describe("Pack()", func() {
 				d = []byte{}
 			})
 			It("Creates 12 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1}))
 			})
 		})
 
@@ -72,7 +72,7 @@ var _ = Describe("Pack()", func() {
 				d = []byte{42}
 			})
 			It("Creates 5 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 0, 42}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 0, 42}))
 			})
 		})
 
@@ -82,7 +82,7 @@ var _ = Describe("Pack()", func() {
 				d = []byte{42}
 			})
 			It("Creates 5 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 0, 42}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 0, 42}))
 			})
 		})
 
@@ -92,7 +92,7 @@ var _ = Describe("Pack()", func() {
 				d = []byte{42}
 			})
 			It("Creates 13 byte chunk", func() {
-				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 42}))
+				Expect(chunk.Pack(t, refs, d)).To(Equal([]byte{0, 10, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 42}))
 			})
 		})
 
@@ -145,7 +145,7 @@ var _ = Describe("Parts()", func() {
 
 	Context("When chunk is only 2 bytes long and type Data", func() {
 		BeforeEach(func() {
-			t, refs, d = chunk.Parts([]byte{0, 1})
+			t, refs, d = chunk.Parts([]byte{0, 10})
 		})
 
 		It("Should return data type", func() {
@@ -164,7 +164,7 @@ var _ = Describe("Parts()", func() {
 
 	Context("When chunk is only 4 bytes long and has Data type and 0 references", func() {
 		BeforeEach(func() {
-			t, refs, d = chunk.Parts([]byte{0, 1, 0, 0})
+			t, refs, d = chunk.Parts([]byte{0, 10, 0, 0})
 		})
 
 		It("Should return data type", func() {
@@ -202,7 +202,7 @@ var _ = Describe("Parts()", func() {
 
 	Context("When chunk is 12 bytes long and has Data type and 1 references", func() {
 		BeforeEach(func() {
-			t, refs, d = chunk.Parts([]byte{0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1})
+			t, refs, d = chunk.Parts([]byte{0, 10, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1})
 		})
 
 		It("Should return error type", func() {

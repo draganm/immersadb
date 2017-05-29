@@ -4,10 +4,10 @@ import (
 	"io"
 	"io/ioutil"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("DataReader", func() {
@@ -29,7 +29,7 @@ var _ = Describe("DataReader", func() {
 				r, err = modifier.NewDataReader(store.NewMemoryStore([]byte{
 					0, 0, 0, 16,
 					// type
-					0, 1,
+					0, 10,
 					// refs
 					0, 0,
 					// data
@@ -39,7 +39,7 @@ var _ = Describe("DataReader", func() {
 
 					0, 0, 0, 8,
 					// type
-					0, 1,
+					0, 10,
 					// refs
 					0, 0,
 					// data
@@ -49,7 +49,7 @@ var _ = Describe("DataReader", func() {
 
 					0, 0, 0, 20,
 					//type
-					0, 2,
+					0, 11,
 					// refs
 					0, 2,
 					0, 0, 0, 0, 0, 0, 0, 0,

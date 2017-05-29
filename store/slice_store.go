@@ -10,26 +10,8 @@ type SliceStore struct {
 	last uint64
 }
 
-// LastChunkAddress returns the address of the last chunk.
-// If there are no chunks in the store it returns 0!
-func (s *SliceStore) LastChunkAddress() uint64 {
-	if s.last == 0 {
-		return 0
-	}
-	len := binary.BigEndian.Uint32(s.data[s.last-4:])
-
-	return s.last - uint64(8+len)
-}
-
-// LastChunk returns the content of the last chunk in the store (last commit).
-// When there are no chunks in the store, it return nil.
-func (s *SliceStore) LastChunk() []byte {
-	if s.last == 0 {
-		return nil
-	}
-	len := binary.BigEndian.Uint32(s.data[s.last-4:])
-
-	return s.Chunk(s.last - uint64(8+len))
+func (s *SliceStore) NextChunkAddress() uint64 {
+	return s.last
 }
 
 // Chunk returns chunk with the given address.

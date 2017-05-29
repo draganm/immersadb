@@ -5,11 +5,11 @@ import (
 	"io"
 	"io/ioutil"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"testing"
 )
@@ -28,11 +28,13 @@ var _ = Describe("Modifier", func() {
 			// Hash Root Chunk
 			0, 0, 0, 4,
 			//
-			0, 10,
+			0, 20,
 			0, 0,
 			0, 0, 0, 4,
 		})
-		m = modifier.New(s, 8192, s.LastChunkAddress())
+		_, err = s.Append(chunk.NewCommitChunk(0))
+		Expect(err).ToNot(HaveOccurred())
+		m = modifier.New(s, 8192, chunk.LastCommitRootHashAddress(s))
 	})
 
 	Describe("Type", func() {
@@ -43,6 +45,9 @@ var _ = Describe("Modifier", func() {
 					_, e := w.Write([]byte("test"))
 					return e
 				})).To(Succeed())
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
+
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
@@ -59,6 +64,8 @@ var _ = Describe("Modifier", func() {
 		Context("When the hash value exists", func() {
 			BeforeEach(func() {
 				Expect(m.CreateHash(modifier.DBPath{"test"})).To(Succeed())
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
@@ -346,10 +353,13 @@ var _ = Describe("Modifier", func() {
 					})
 					Expect(err).ToNot(HaveOccurred())
 				}
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
+
 			})
 
 			It("Should have Hash leaf as last chunk with 16 refs", func() {
-				t, refs, _ := chunk.Parts(m.LastChunk())
+				t, refs, _ := chunk.Parts(s.Chunk(chunk.LastCommitRootHashAddress(s)))
 				Expect(t).To(Equal(chunk.HashLeafType))
 				Expect(len(refs)).To(Equal(16))
 			})
@@ -386,10 +396,12 @@ var _ = Describe("Modifier", func() {
 						return e
 					})
 					Expect(err).ToNot(HaveOccurred())
+					_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("Should have Hash node", func() {
-					t, _, _ := chunk.Parts(m.LastChunk())
+					t, _, _ := chunk.Parts(s.Chunk(chunk.LastCommitRootHashAddress(s)))
 					Expect(t).To(Equal(chunk.HashNodeType))
 				})
 
@@ -466,6 +478,9 @@ var _ = Describe("Modifier", func() {
 					_, e := w.Write([]byte{1, 2, 3, 4})
 					return e
 				})
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
+
 			})
 
 			It("Shoud not return an error", func() {
@@ -476,22 +491,29 @@ var _ = Describe("Modifier", func() {
 				Expect(s.Data()).To(Equal([]byte{
 					// old root
 					0, 0, 0, 4,
-					0, 10,
+					0, 20,
 					0, 0,
 					0, 0, 0, 4,
 
+					// old commit
+					0, 0, 0, 12,
+					0, 1,
+					0, 1,
+					0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 12,
+
 					// Data chunk
 					0, 0, 0, 8,
-					0, 1,
+					0, 10,
 					0, 0,
 					1, 2, 3, 4,
 					0, 0, 0, 8,
 
 					// Data header chunk
 					0, 0, 0, 20,
-					0, 2,
+					0, 11,
 					0, 1,
-					0, 0, 0, 0, 0, 0, 0, 12,
+					0, 0, 0, 0, 0, 0, 0, 32,
 
 					// size
 					0, 0, 0, 0, 0, 0, 0, 4,
@@ -499,11 +521,18 @@ var _ = Describe("Modifier", func() {
 
 					// New root
 					0, 0, 0, 18,
-					0, 10,
+					0, 20,
 					0, 1,
-					0, 0, 0, 0, 0, 0, 0, 28,
+					0, 0, 0, 0, 0, 0, 0, 48,
 					0, 4, 116, 101, 115, 116,
 					0, 0, 0, 18,
+
+					// New commit
+					0, 0, 0, 12,
+					0, 1,
+					0, 1,
+					0, 0, 0, 0, 0, 0, 0, 76,
+					0, 0, 0, 12,
 				}))
 			})
 
@@ -525,21 +554,28 @@ var _ = Describe("Modifier", func() {
 
 					// old root
 					0, 0, 0, 4,
-					0, 10,
+					0, 20,
 					0, 0,
 					0, 0, 0, 4,
 
+					// old commit
+					0, 0, 0, 12,
+					0, 1,
+					0, 1,
+					0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 12,
+
 					// empty array
 					0, 0, 0, 4,
-					0, 40,
+					0, 30,
 					0, 0,
 					0, 0, 0, 4,
 
 					// new root
 					0, 0, 0, 18,
-					0, 10,
+					0, 20,
 					0, 1,
-					0, 0, 0, 0, 0, 0, 0, 12,
+					0, 0, 0, 0, 0, 0, 0, 32,
 					// 'test'
 					0, 4, 116, 101, 115, 116,
 					0, 0, 0, 18,
@@ -564,23 +600,30 @@ var _ = Describe("Modifier", func() {
 				Expect(s.Data()).To(Equal([]byte{
 					// old root
 					0, 0, 0, 4,
-					0, 10,
+					0, 20,
 					0, 0,
 					0, 0, 0, 4,
 
+					// old commit
+					0, 0, 0, 12,
+					0, 1,
+					0, 1,
+					0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 12,
+
 					// new leaf
 					0, 0, 0, 4,
-					0, 10,
+					0, 20,
 					0, 0,
 					0, 0, 0, 4,
 
 					// new root
 					0, 0, 0, 18,
-					0, 10,
+					0, 20,
 					// refs
 					0, 1,
 					// ref to new leaf
-					0, 0, 0, 0, 0, 0, 0, 12,
+					0, 0, 0, 0, 0, 0, 0, 32,
 					// 'test'
 					0, 4, 116, 101, 115, 116,
 					0, 0, 0, 18,
@@ -609,41 +652,49 @@ var _ = Describe("Modifier", func() {
 					Expect(s.Data()).To(Equal([]byte{
 						// initial root
 						0, 0, 0, 4,
-						0, 10,
+						0, 20,
 						0, 0,
 						0, 0, 0, 4,
 
+						// Old commit
+
+						0, 0, 0, 12,
+						0, 1,
+						0, 1,
+						0, 0, 0, 0, 0, 0, 0, 0,
+						0, 0, 0, 12,
+
 						// new leaf
 						0, 0, 0, 4,
-						0, 10,
+						0, 20,
 						0, 0,
 						0, 0, 0, 4,
 
 						// previous root
 						0, 0, 0, 18,
-						0, 10,
+						0, 20,
 						// refs
 						0, 1,
 						// ref to new leaf
-						0, 0, 0, 0, 0, 0, 0, 12,
+						0, 0, 0, 0, 0, 0, 0, 32,
 						// 'test'
 						0, 4, 116, 101, 115, 116,
 						0, 0, 0, 18,
 
 						// empty test2 hash
 						0, 0, 0, 4,
-						0, 10,
+						0, 20,
 						0, 0,
 						0, 0, 0, 4,
 
 						// new root
 						0, 0, 0, 33,
-						0, 10,
+						0, 20,
 
 						// 2 refs
 						0, 2,
-						0, 0, 0, 0, 0, 0, 0, 12,
-						0, 0, 0, 0, 0, 0, 0, 50,
+						0, 0, 0, 0, 0, 0, 0, 32,
+						0, 0, 0, 0, 0, 0, 0, 70,
 
 						// test
 						0, 4, 116, 101, 115, 116,

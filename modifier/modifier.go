@@ -16,7 +16,7 @@ var ErrDoesNotExist = errors.New("Element does not exits")
 type Modifier struct {
 	store.Store
 	chunkSize   int
-	rootAddress uint64
+	RootAddress uint64
 }
 
 func New(s store.Store, chunkSize int, rootAddress uint64) *Modifier {
@@ -24,12 +24,12 @@ func New(s store.Store, chunkSize int, rootAddress uint64) *Modifier {
 	return &Modifier{
 		Store:       s,
 		chunkSize:   chunkSize,
-		rootAddress: rootAddress,
+		RootAddress: rootAddress,
 	}
 }
 
 func (m *Modifier) rootType() chunk.ChunkType {
-	return chunk.Type(m.Chunk(m.rootAddress))
+	return chunk.Type(m.Chunk(m.RootAddress))
 }
 
 func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
@@ -44,7 +44,7 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 			return errors.New("Value is not a hash")
 		}
 
-		address, err := m.lookupAddressInHash(m.rootAddress, key)
+		address, err := m.lookupAddressInHash(m.RootAddress, key)
 		if err != nil {
 			return err
 		}
@@ -54,15 +54,15 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 		if err != nil {
 			return err
 		}
-		newRoot, err := m.addToHash(m.rootAddress, key, sub.rootAddress)
+		newRoot, err := m.addToHash(m.RootAddress, key, sub.RootAddress)
 		if err != nil {
 			return err
 		}
-		m.rootAddress = newRoot
+		m.RootAddress = newRoot
 		return nil
 	case int:
 		idx := path[0].(int)
-		address, err := m.lookupArray(m.rootAddress, uint64(idx))
+		address, err := m.lookupArray(m.RootAddress, uint64(idx))
 		if err != nil {
 			return err
 		}
@@ -71,13 +71,13 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 		if err != nil {
 			return err
 		}
-		newRoot, err := m.setArrayValue(m.rootAddress, uint64(idx), sub.rootAddress)
+		newRoot, err := m.setArrayValue(m.RootAddress, uint64(idx), sub.RootAddress)
 
 		if err != nil {
 			return err
 		}
 
-		m.rootAddress = newRoot
+		m.RootAddress = newRoot
 		return nil
 	default:
 		panic("not yet implemented")
@@ -98,12 +98,12 @@ func (m *Modifier) CreateHash(path DBPath) error {
 				return err
 			}
 
-			newRoot, err := vm.addToHash(vm.rootAddress, last.(string), valueAddr)
+			newRoot, err := vm.addToHash(vm.RootAddress, last.(string), valueAddr)
 			if err != nil {
 				return err
 			}
 
-			vm.rootAddress = newRoot
+			vm.RootAddress = newRoot
 			return nil
 		case int:
 			idx := last.(int)
@@ -117,12 +117,12 @@ func (m *Modifier) CreateHash(path DBPath) error {
 				return err
 			}
 
-			newRoot, err := vm.prependArray(vm.rootAddress, valueAddr)
+			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
 			if err != nil {
 				return err
 			}
 
-			vm.rootAddress = newRoot
+			vm.RootAddress = newRoot
 			return nil
 		default:
 			return fmt.Errorf("Cannot create hash on %s: %#v is not supported as parent for Hash", path, last)
@@ -145,12 +145,12 @@ func (m *Modifier) CreateArray(path DBPath) error {
 				return err
 			}
 
-			newRoot, err := vm.addToHash(vm.rootAddress, last.(string), valueAddr)
+			newRoot, err := vm.addToHash(vm.RootAddress, last.(string), valueAddr)
 			if err != nil {
 				return err
 			}
 
-			vm.rootAddress = newRoot
+			vm.RootAddress = newRoot
 			return nil
 		default:
 			panic("not yet implemented")
@@ -178,11 +178,11 @@ func (m *Modifier) CreateData(path DBPath, f func(io.Writer) error) error {
 				return err
 			}
 
-			newRoot, err := vm.addToHash(vm.rootAddress, last.(string), valueAddr)
+			newRoot, err := vm.addToHash(vm.RootAddress, last.(string), valueAddr)
 			if err != nil {
 				return err
 			}
-			vm.rootAddress = newRoot
+			vm.RootAddress = newRoot
 			return nil
 		case int:
 			idx := last.(int)
@@ -200,13 +200,13 @@ func (m *Modifier) CreateData(path DBPath, f func(io.Writer) error) error {
 				return err
 			}
 
-			newRootAddress, err := vm.prependArray(vm.rootAddress, valueAddr)
+			newRootAddress, err := vm.prependArray(vm.RootAddress, valueAddr)
 
 			if err != nil {
 				return err
 			}
 
-			vm.rootAddress = newRootAddress
+			vm.RootAddress = newRootAddress
 
 			return nil
 		default:
@@ -249,23 +249,23 @@ func (m *Modifier) lookupAddress(path DBPath, from uint64) (uint64, error) {
 }
 
 func (m *Modifier) Data() (io.Reader, error) {
-	return NewDataReader(m.Store, m.rootAddress)
+	return NewDataReader(m.Store, m.RootAddress)
 }
 
 func (m *Modifier) ForEachHashEntry(f func(key string, reader EntityReader) error) error {
-	return m.forEachHashEntry(m.rootAddress, func(key string, ref uint64) error {
+	return m.forEachHashEntry(m.RootAddress, func(key string, ref uint64) error {
 		return f(key, New(m.Store, m.chunkSize, ref))
 	})
 }
 
 func (m *Modifier) ForEachArrayElement(f func(index uint64, reader EntityReader) error) error {
-	return m.forEachArrayElementStartingWithIndex(0, m.rootAddress, func(idx, valueAddr uint64) error {
+	return m.forEachArrayElementStartingWithIndex(0, m.RootAddress, func(idx, valueAddr uint64) error {
 		return f(idx, New(m.Store, m.chunkSize, valueAddr))
 	})
 }
 
 func (m *Modifier) Exists(path DBPath) bool {
-	_, err := m.lookupAddress(path, m.rootAddress)
+	_, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
 		return false
 	}
@@ -281,7 +281,7 @@ var valueTypeByChunkType = map[chunk.ChunkType]EntityType{
 }
 
 func (m *Modifier) Type() EntityType {
-	addr := m.rootAddress
+	addr := m.RootAddress
 	chunkType := chunk.Type(m.Chunk(addr))
 	t, found := valueTypeByChunkType[chunkType]
 	if !found {
@@ -291,11 +291,11 @@ func (m *Modifier) Type() EntityType {
 }
 
 func (m *Modifier) Address() uint64 {
-	return m.rootAddress
+	return m.RootAddress
 }
 
 func (m *Modifier) HasPath(path DBPath) bool {
-	_, err := m.lookupAddress(path, m.rootAddress)
+	_, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
 		return false
 	}
@@ -303,7 +303,7 @@ func (m *Modifier) HasPath(path DBPath) bool {
 }
 
 func (m *Modifier) Size() uint64 {
-	addr := m.rootAddress
+	addr := m.RootAddress
 	chunkType, refs, data := chunk.Parts(m.Chunk(addr))
 	switch chunkType {
 	case chunk.HashLeafType:
@@ -322,7 +322,7 @@ func (m *Modifier) Size() uint64 {
 }
 
 func (m *Modifier) EntityReaderFor(path DBPath) (EntityReader, error) {
-	addr, err := m.lookupAddress(path, m.rootAddress)
+	addr, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -334,18 +334,18 @@ func (m *Modifier) Delete(path DBPath) error {
 	return m.modify(path[:len(path)-1], func(mm *Modifier) error {
 		switch lastElement.(type) {
 		case string:
-			addr, err := mm.deleteFromHash(mm.rootAddress, lastElement.(string))
+			addr, err := mm.deleteFromHash(mm.RootAddress, lastElement.(string))
 			if err != nil {
 				return err
 			}
-			mm.rootAddress = addr
+			mm.RootAddress = addr
 			return nil
 		case int:
-			addr, err := m.deleteFromArray(mm.rootAddress, uint64(lastElement.(int)))
+			addr, err := m.deleteFromArray(mm.RootAddress, uint64(lastElement.(int)))
 			if err != nil {
 				return err
 			}
-			mm.rootAddress = addr
+			mm.RootAddress = addr
 			return nil
 		default:
 			return fmt.Errorf("Delete not supported for type %#v", lastElement)

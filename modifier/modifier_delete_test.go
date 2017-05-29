@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
@@ -20,20 +21,29 @@ var _ = Describe("Modifier.Delete", func() {
 			// Hash Root Chunk
 			0, 0, 0, 4,
 			//
-			0, 10,
+			0, 20,
 			0, 0,
 			0, 0, 0, 4,
 		})
-		m = modifier.New(s, 8192, s.LastChunkAddress())
+		_, err = s.Append(chunk.NewCommitChunk(0))
+		Expect(err).ToNot(HaveOccurred())
+
+		m = modifier.New(s, 8192, chunk.LastCommitRootHashAddress(s))
 	})
 
 	Context("Hash", func() {
 		JustBeforeEach(func() {
 			err = m.Delete(modifier.DBPath{"test"})
+			_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+			Expect(err).ToNot(HaveOccurred())
+
 		})
 		Context("When the Hash has the element", func() {
 			BeforeEach(func() {
 				Expect(m.CreateHash(modifier.DBPath{"test"})).To(Succeed())
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
+
 			})
 
 			It("Should not return error", func() {
@@ -49,12 +59,16 @@ var _ = Describe("Modifier.Delete", func() {
 
 			BeforeEach(func() {
 				Expect(m.CreateHash(modifier.DBPath{"test"})).To(Succeed())
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			BeforeEach(func() {
 				for i := 0; i < 17; i++ {
 					Expect(m.CreateHash(modifier.DBPath{fmt.Sprintf("test-%d", i)})).To(Succeed())
 				}
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("Should not return error", func() {
@@ -72,6 +86,8 @@ var _ = Describe("Modifier.Delete", func() {
 	Context("Array", func() {
 		BeforeEach(func() {
 			Expect(m.CreateArray(modifier.DBPath{"test"})).To(Succeed())
+			_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("When I create a 17 element array", func() {
@@ -79,27 +95,30 @@ var _ = Describe("Modifier.Delete", func() {
 				for i := 0; i < 17; i++ {
 					Expect(m.CreateHash(modifier.DBPath{"test", 0})).To(Succeed())
 				}
+				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+				Expect(err).ToNot(HaveOccurred())
+
 			})
 			It("Should have created it", func() {
 				Expect(compactStore(s)).To(Equal([]byte{
 					0, 0, 0, 4,
-					0, 40,
+					0, 30,
 					0, 0,
 					0, 0, 0, 4,
 
 					0, 0, 0, 4,
-					0, 10,
+					0, 20,
 					0, 0,
 					0, 0, 0, 4,
 
 					0, 0, 0, 12,
-					0, 40,
+					0, 30,
 					0, 1,
 					0, 0, 0, 0, 0, 0, 0, 12,
 					0, 0, 0, 12,
 
 					0, 0, 0, 36,
-					0, 40,
+					0, 30,
 					0, 4,
 					0, 0, 0, 0, 0, 0, 0, 12,
 					0, 0, 0, 0, 0, 0, 0, 12,
@@ -108,7 +127,7 @@ var _ = Describe("Modifier.Delete", func() {
 					0, 0, 0, 36,
 
 					0, 0, 0, 36,
-					0, 40,
+					0, 30,
 					0, 4,
 					0, 0, 0, 0, 0, 0, 0, 12,
 					0, 0, 0, 0, 0, 0, 0, 12,
@@ -117,7 +136,7 @@ var _ = Describe("Modifier.Delete", func() {
 					0, 0, 0, 36,
 
 					0, 0, 0, 36,
-					0, 40,
+					0, 30,
 					0, 4,
 					0, 0, 0, 0, 0, 0, 0, 12,
 					0, 0, 0, 0, 0, 0, 0, 12,
@@ -126,7 +145,7 @@ var _ = Describe("Modifier.Delete", func() {
 					0, 0, 0, 36,
 
 					0, 0, 0, 36,
-					0, 40,
+					0, 30,
 					0, 4,
 					0, 0, 0, 0, 0, 0, 0, 12,
 					0, 0, 0, 0, 0, 0, 0, 12,
@@ -135,7 +154,7 @@ var _ = Describe("Modifier.Delete", func() {
 					0, 0, 0, 36,
 
 					0, 0, 0, 70,
-					0, 41,
+					0, 31,
 					0, 4,
 					0, 0, 0, 0, 0, 0, 0, 44,
 					0, 0, 0, 0, 0, 0, 0, 88,
@@ -149,7 +168,7 @@ var _ = Describe("Modifier.Delete", func() {
 					0, 0, 0, 70,
 
 					0, 0, 0, 70,
-					0, 41,
+					0, 31,
 					0, 4,
 					0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0,
@@ -163,11 +182,17 @@ var _ = Describe("Modifier.Delete", func() {
 					0, 0, 0, 70,
 
 					0, 0, 0, 18,
-					0, 10,
+					0, 20,
 					0, 1,
 					0, 0, 0, 0, 0, 0, 1, 42,
 					0, 4, 116, 101, 115, 116,
 					0, 0, 0, 18,
+
+					0, 0, 0, 12,
+					0, 1,
+					0, 1,
+					0, 0, 0, 0, 0, 0, 1, 120,
+					0, 0, 0, 12,
 				}))
 			})
 
@@ -177,25 +202,20 @@ var _ = Describe("Modifier.Delete", func() {
 						Expect(m.CreateHash(modifier.DBPath{"test", 0})).To(Succeed())
 						Expect(m.Delete(modifier.DBPath{"test", 16})).To(Succeed())
 					}
+					_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
+					Expect(err).ToNot(HaveOccurred())
+
 				})
 
 				It("Should have created it", func() {
 					Expect(compactStore(s)).To(Equal([]byte{
 						0, 0, 0, 4,
-						0, 10,
+						0, 20,
 						0, 0,
 						0, 0, 0, 4,
 
 						0, 0, 0, 36,
-						0, 40,
-						0, 4,
-						0, 0, 0, 0, 0, 0, 0, 0,
-						0, 0, 0, 0, 0, 0, 0, 0,
-						0, 0, 0, 0, 0, 0, 0, 0,
-						0, 0, 0, 0, 0, 0, 0, 0,
-						0, 0, 0, 36,
-						0, 0, 0, 36,
-						0, 40,
+						0, 30,
 						0, 4,
 						0, 0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 0, 0, 0, 0, 0,
@@ -204,7 +224,16 @@ var _ = Describe("Modifier.Delete", func() {
 						0, 0, 0, 36,
 
 						0, 0, 0, 36,
-						0, 40,
+						0, 30,
+						0, 4,
+						0, 0, 0, 0, 0, 0, 0, 0,
+						0, 0, 0, 0, 0, 0, 0, 0,
+						0, 0, 0, 0, 0, 0, 0, 0,
+						0, 0, 0, 0, 0, 0, 0, 0,
+						0, 0, 0, 36,
+
+						0, 0, 0, 36,
+						0, 30,
 						0, 4,
 						0, 0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 0, 0, 0, 0, 0,
@@ -213,12 +242,12 @@ var _ = Describe("Modifier.Delete", func() {
 						0, 0, 0, 36,
 
 						0, 0, 0, 4,
-						0, 40,
+						0, 30,
 						0, 0,
 						0, 0, 0, 4,
 
 						0, 0, 0, 36,
-						0, 40,
+						0, 30,
 						0, 4,
 						0, 0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 0, 0, 0, 0, 0,
@@ -227,13 +256,13 @@ var _ = Describe("Modifier.Delete", func() {
 						0, 0, 0, 36,
 
 						0, 0, 0, 12,
-						0, 40,
+						0, 30,
 						0, 1,
 						0, 0, 0, 0, 0, 0, 0, 0,
 						0, 0, 0, 12,
 
 						0, 0, 0, 70,
-						0, 41,
+						0, 31,
 						0, 4,
 						0, 0, 0, 0, 0, 0, 0, 144,
 						0, 0, 0, 0, 0, 0, 0, 144,
@@ -247,7 +276,7 @@ var _ = Describe("Modifier.Delete", func() {
 						0, 0, 0, 70,
 
 						0, 0, 0, 70,
-						0, 41,
+						0, 31,
 						0, 4,
 						0, 0, 0, 0, 0, 0, 0, 12,
 						0, 0, 0, 0, 0, 0, 0, 56,
@@ -261,11 +290,17 @@ var _ = Describe("Modifier.Delete", func() {
 						0, 0, 0, 70,
 
 						0, 0, 0, 18,
-						0, 10,
+						0, 20,
 						0, 1,
 						0, 0, 0, 0, 0, 0, 1, 42,
 						0, 4, 116, 101, 115, 116,
 						0, 0, 0, 18,
+
+						0, 0, 0, 12,
+						0, 1,
+						0, 1,
+						0, 0, 0, 0, 0, 0, 1, 120,
+						0, 0, 0, 12,
 					}))
 				})
 

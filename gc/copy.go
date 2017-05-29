@@ -10,7 +10,7 @@ import (
 // Copy copies content of one storage to the other in order to remove unused chunks.
 // It will also de-dup leaves with the same content.
 func Copy(source, destination store.Store) error {
-	return deepCopy(source.LastChunkAddress(), map[uint64]uint64{}, map[string]uint64{}, source, destination)
+	return deepCopy(source.NextChunkAddress()-chunk.CommitChunkSize, map[uint64]uint64{}, map[string]uint64{}, source, destination)
 }
 
 func deepCopy(addr uint64, addrMap map[uint64]uint64, contentMap map[string]uint64, source, destination store.Store) error {

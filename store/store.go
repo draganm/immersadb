@@ -5,9 +5,8 @@ package store
 type Store interface {
 	Append(data []byte) (uint64, error)
 	Chunk(addr uint64) []byte
-	LastChunk() []byte
-	LastChunkAddress() uint64
 	BytesInStore() uint64
+	NextChunkAddress() uint64
 	Close() error
 }
 
