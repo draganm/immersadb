@@ -27,37 +27,32 @@ var _ = Describe("DataReader", func() {
 		Context("When there is a single data chunk file in the store", func() {
 			BeforeEach(func() {
 				r, err = modifier.NewDataReader(store.NewMemoryStore([]byte{
-					0, 0, 0, 16,
+					0, 14,
 					// type
-					0, 10,
+					10,
 					// refs
-					0, 0,
+					0,
 					// data
 					0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-					0, 0, 0, 0, 0, 0, 0, 0,
-					// chunk end
 
-					0, 0, 0, 8,
+					0, 6,
 					// type
-					0, 10,
+					10,
 					// refs
-					0, 0,
+					0,
 					// data
 					12, 13, 14, 15,
-					0, 0, 0, 0, 0, 0, 0, 28,
-					// chunk end
 
-					0, 0, 0, 20,
+					0, 18,
 					//type
-					0, 11,
+					11,
 					// refs
-					0, 2,
+					2,
 					0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 28,
+					0, 0, 0, 0, 0, 0, 0, 16,
 					//
 
-					0, 0, 0, 0, 0, 0, 0, 48,
-				}), 48)
+				}), 24)
 				Expect(err).ToNot(HaveOccurred())
 			})
 

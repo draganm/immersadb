@@ -43,7 +43,7 @@ var _ = Describe("Size", func() {
 			})
 
 			It("Should return size of the hash chunk and commit chunk", func() {
-				Expect(size).To(Equal(uint64(58)))
+				Expect(size).To(Equal(uint64(34)))
 			})
 
 		})

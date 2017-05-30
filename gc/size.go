@@ -17,7 +17,7 @@ func Size(s store.Store) uint64 {
 
 		c := s.Chunk(next)
 		_, refs, data := chunk.Parts(c)
-		s := uint64(len(refs)*8 + len(data) + 8 + 2 + 2)
+		s := uint64(len(refs)*8 + len(data) + 2 + 1 + 1)
 		size += s
 		done[next] = struct{}{}
 

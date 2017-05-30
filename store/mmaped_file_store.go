@@ -58,10 +58,9 @@ func NewFileStore(file string) (*FileStore, error) {
 func (s *FileStore) Append(data []byte) (uint64, error) {
 
 	prev := s.last
-	toWrite := make([]byte, 8+len(data))
-	binary.BigEndian.PutUint32(toWrite[0:4], uint32(len(data)))
-	copy(toWrite[4:len(data)+4], data)
-	binary.BigEndian.PutUint32(toWrite[len(data)+4:], uint32(len(data)))
+	toWrite := make([]byte, 2+len(data))
+	binary.BigEndian.PutUint16(toWrite[0:2], uint16(len(data)))
+	copy(toWrite[2:len(data)+2], data)
 	_, err := s.file.Write(toWrite)
 	if err != nil {
 		return 0, err
@@ -85,19 +84,17 @@ func (s *FileStore) BulkAppend(chunks [][]byte) error {
 
 	totalLength := 0
 	for _, c := range chunks {
-		totalLength += 8 + len(c)
+		totalLength += 2 + len(c)
 	}
 
 	toWrite := make([]byte, totalLength)
 
 	copied := 0
 	for _, c := range chunks {
-		binary.BigEndian.PutUint32(toWrite[copied:], uint32(len(c)))
-		copied += 4
+		binary.BigEndian.PutUint16(toWrite[copied:], uint16(len(c)))
+		copied += 2
 		copy(toWrite[copied:], c)
 		copied += len(c)
-		binary.BigEndian.PutUint32(toWrite[copied:], uint32(len(c)))
-		copied += 4
 	}
 
 	_, err := s.file.Write(toWrite)

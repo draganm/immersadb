@@ -18,11 +18,10 @@ var _ = Describe("Modifier.Size", func() {
 	BeforeEach(func() {
 		s = store.NewMemoryStore([]byte{
 			// Hash Root Chunk
-			0, 0, 0, 4,
+			0, 2,
 			//
-			0, 20,
-			0, 0,
-			0, 0, 0, 4,
+			20,
+			0,
 		})
 		_, err = s.Append(chunk.NewCommitChunk(0))
 		Expect(err).ToNot(HaveOccurred())
