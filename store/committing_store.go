@@ -29,7 +29,7 @@ func (cs *CommitingStore) Chunk(addr uint64) []byte {
 func (cs *CommitingStore) BytesInStore() uint64 {
 	bis := cs.store.BytesInStore()
 	for _, c := range cs.chunks {
-		bis += 8 + uint64(len(c))
+		bis += 2 + uint64(len(c))
 	}
 	return bis
 }
@@ -42,7 +42,7 @@ func (cs *CommitingStore) Append(data []byte) (uint64, error) {
 	last := cs.storeEndAddress
 	cs.chunkByAddress[last] = data
 	cs.chunks = append(cs.chunks, data)
-	cs.storeEndAddress += uint64(len(data) + 8)
+	cs.storeEndAddress += uint64(len(data) + 2)
 	return last, nil
 }
 

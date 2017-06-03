@@ -20,8 +20,9 @@ func (s *SliceStore) Chunk(addr uint64) []byte {
 	if addr >= s.last {
 		return nil
 	}
-	len := int(binary.BigEndian.Uint32(s.data[addr:]))
-	return s.data[int(addr)+4 : int(addr)+len+4]
+
+	len := int(binary.BigEndian.Uint16(s.data[addr:])) & 0xffff
+	return s.data[int(addr)+2 : int(addr)+len+2]
 }
 
 // BytesInStore returns the number of bytes that store has.

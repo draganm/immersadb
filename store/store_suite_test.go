@@ -92,9 +92,8 @@ var _ = Describe("FileStore", func() {
 					data, err := ioutil.ReadFile(dbFile)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(data).To(Equal([]byte{
-						0, 0, 0, 1,
+						0, 1,
 						42,
-						0, 0, 0, 1,
 					}))
 				})
 			})
@@ -128,21 +127,19 @@ var _ = Describe("FileStore", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("Should return address 9", func() {
-						Expect(id).To(Equal(uint64(9)))
+					It("Should return address 3", func() {
+						Expect(id).To(Equal(uint64(3)))
 					})
 
 					It("Should create proper layout of the data", func() {
 						data, err := ioutil.ReadFile(dbFile)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(data).To(Equal([]byte{
-							0, 0, 0, 1,
+							0, 1,
 							42,
-							0, 0, 0, 1,
 
-							0, 0, 0, 1,
+							0, 1,
 							43,
-							0, 0, 0, 1,
 						}))
 					})
 				})
@@ -168,7 +165,7 @@ var _ = Describe("FileStore", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 			It("Should return length of the chunk", func() {
-				Expect(s.NextChunkAddress()).To(Equal(uint64(9)))
+				Expect(s.NextChunkAddress()).To(Equal(uint64(3)))
 			})
 		})
 		Context("When there are two chunks in the store", func() {
@@ -179,7 +176,7 @@ var _ = Describe("FileStore", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 			It("Should return address after the second chunk", func() {
-				Expect(s.NextChunkAddress()).To(Equal(uint64(18)))
+				Expect(s.NextChunkAddress()).To(Equal(uint64(6)))
 			})
 		})
 	})
@@ -228,7 +225,7 @@ var _ = Describe("FileStore", func() {
 			})
 			Context("When I request any other chunk", func() {
 				It("Should return nil", func() {
-					Expect(s.Chunk(15)).To(BeNil())
+					Expect(s.Chunk(5)).To(BeNil())
 				})
 			})
 
@@ -248,12 +245,12 @@ var _ = Describe("FileStore", func() {
 			})
 			Context("When I request the second chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(11)).To(Equal([]byte{4, 5, 6}))
+					Expect(s.Chunk(5)).To(Equal([]byte{4, 5, 6}))
 				})
 			})
 			Context("When I request any other chunk", func() {
 				It("Should return nil", func() {
-					Expect(s.Chunk(22)).To(BeNil())
+					Expect(s.Chunk(10)).To(BeNil())
 				})
 			})
 
@@ -275,12 +272,12 @@ var _ = Describe("FileStore", func() {
 			})
 			Context("When I request the second chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(11)).To(Equal([]byte{4, 5, 6}))
+					Expect(s.Chunk(5)).To(Equal([]byte{4, 5, 6}))
 				})
 			})
 			Context("When I request the third chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(22)).To(Equal([]byte{7, 8, 9}))
+					Expect(s.Chunk(10)).To(Equal([]byte{7, 8, 9}))
 				})
 			})
 
@@ -310,17 +307,17 @@ var _ = Describe("FileStore", func() {
 			})
 			Context("When I request the second chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(11)).To(Equal([]byte{4, 5, 6}))
+					Expect(s.Chunk(5)).To(Equal([]byte{4, 5, 6}))
 				})
 			})
 			Context("When I request the third chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(22)).To(Equal([]byte{7, 8, 9}))
+					Expect(s.Chunk(10)).To(Equal([]byte{7, 8, 9}))
 				})
 			})
 			Context("When I request the fourth chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(33)).To(Equal([]byte{10, 11, 12}))
+					Expect(s.Chunk(15)).To(Equal([]byte{10, 11, 12}))
 				})
 			})
 
@@ -352,22 +349,22 @@ var _ = Describe("FileStore", func() {
 			})
 			Context("When I request the second chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(11)).To(Equal([]byte{4, 5, 6}))
+					Expect(s.Chunk(5)).To(Equal([]byte{4, 5, 6}))
 				})
 			})
 			Context("When I request the third chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(22)).To(Equal([]byte{7, 8, 9}))
+					Expect(s.Chunk(10)).To(Equal([]byte{7, 8, 9}))
 				})
 			})
 			Context("When I request the fourth chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(33)).To(Equal([]byte{10, 11, 12}))
+					Expect(s.Chunk(15)).To(Equal([]byte{10, 11, 12}))
 				})
 			})
 			Context("When I request the fifth chunk", func() {
 				It("Should return the chunk", func() {
-					Expect(s.Chunk(44)).To(Equal([]byte{13, 14, 15}))
+					Expect(s.Chunk(20)).To(Equal([]byte{13, 14, 15}))
 				})
 			})
 
@@ -411,9 +408,8 @@ var _ = Describe("FileStore", func() {
 					data, err := ioutil.ReadFile(dbFile)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(data).To(Equal([]byte{
-						0, 0, 0, 1,
+						0, 1,
 						42,
-						0, 0, 0, 1,
 					}))
 				})
 
@@ -426,20 +422,18 @@ var _ = Describe("FileStore", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
-					It("Should return address 9", func() {
-						Expect(id).To(Equal(uint64(9)))
+					It("Should return address 3", func() {
+						Expect(id).To(Equal(uint64(3)))
 					})
 					It("Should create proper layout of the data", func() {
 						data, err := ioutil.ReadFile(dbFile)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(data).To(Equal([]byte{
-							0, 0, 0, 1,
+							0, 1,
 							42,
-							0, 0, 0, 1,
 
-							0, 0, 0, 1,
+							0, 1,
 							43,
-							0, 0, 0, 1,
 						}))
 					})
 					Context("When I append third byte chunk", func() {
@@ -451,24 +445,21 @@ var _ = Describe("FileStore", func() {
 							Expect(err).ToNot(HaveOccurred())
 						})
 
-						It("Should return address 3", func() {
-							Expect(id).To(Equal(uint64(18)))
+						It("Should return address 6", func() {
+							Expect(id).To(Equal(uint64(6)))
 						})
 						It("Should create proper layout of the data", func() {
 							data, err := ioutil.ReadFile(dbFile)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(data).To(Equal([]byte{
-								0, 0, 0, 1,
+								0, 1,
 								42,
-								0, 0, 0, 1,
 
-								0, 0, 0, 1,
+								0, 1,
 								43,
-								0, 0, 0, 1,
 
-								0, 0, 0, 1,
+								0, 1,
 								44,
-								0, 0, 0, 1,
 							}))
 						})
 
@@ -481,28 +472,24 @@ var _ = Describe("FileStore", func() {
 								Expect(err).ToNot(HaveOccurred())
 							})
 
-							It("Should return address 27", func() {
-								Expect(id).To(Equal(uint64(27)))
+							It("Should return address 9", func() {
+								Expect(id).To(Equal(uint64(9)))
 							})
 							It("Should create proper layout of the data", func() {
 								data, err := ioutil.ReadFile(dbFile)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(data).To(Equal([]byte{
-									0, 0, 0, 1,
+									0, 1,
 									42,
-									0, 0, 0, 1,
 
-									0, 0, 0, 1,
+									0, 1,
 									43,
-									0, 0, 0, 1,
 
-									0, 0, 0, 1,
+									0, 1,
 									44,
-									0, 0, 0, 1,
 
-									0, 0, 0, 1,
+									0, 1,
 									45,
-									0, 0, 0, 1,
 								}))
 							})
 						})

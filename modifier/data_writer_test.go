@@ -41,28 +41,25 @@ var _ = Describe("DataWriter", func() {
 			})
 
 			It("Should return address of the written segment", func() {
-				Expect(ref).To(Equal(uint64(13)))
+				Expect(ref).To(Equal(uint64(5)))
 			})
 
 			It("Should have written segments to storage", func() {
 				Expect(s.Data()).To(Equal([]byte{
-					0, 0, 0, 5,
-					0, 10,
+					0, 3,
+					10,
 
-					0, 0,
+					0,
 
 					1,
-					0, 0, 0, 5,
 
-					0, 0, 0, 20,
-					0, 11,
+					0, 18,
+					11,
 
-					0, 1,
+					1,
 					0, 0, 0, 0, 0, 0, 0, 0,
 
 					0, 0, 0, 0, 0, 0, 0, 1,
-
-					0, 0, 0, 20,
 				}))
 			})
 		})
@@ -101,43 +98,39 @@ var _ = Describe("DataWriter", func() {
 			})
 
 			It("Should return address of the written segment", func() {
-				Expect(ref).To(Equal(uint64(40)))
+				Expect(ref).To(Equal(uint64(24)))
 			})
 
 			It("Should have written segments to storage", func() {
 				Expect(s.Data()).To(Equal([]byte{
-					0, 0, 0, 16,
+					0, 14,
 					// type
-					0, 10,
+					10,
 					// refs
-					0, 0,
+					0,
 					// data
 					0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-					0, 0, 0, 16,
 					// chunk end
 
-					0, 0, 0, 8,
+					0, 6,
 					// type
-					0, 10,
+					10,
 					// refs
-					0, 0,
+					0,
 					// data
 					12, 13, 14, 15,
-					0, 0, 0, 8,
 					// chunk end
 
-					0, 0, 0, 28,
+					0, 26,
 					//type
-					0, 11,
+					11,
 					// refs
-					0, 2,
+					2,
 					0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 24,
+					0, 0, 0, 0, 0, 0, 0, 16,
 					//
 
 					0, 0, 0, 0, 0, 0, 0, 16,
-
-					0, 0, 0, 28,
 				}))
 			})
 
@@ -176,44 +169,38 @@ var _ = Describe("DataWriter", func() {
 			})
 
 			It("Should return address of the written segment", func() {
-				Expect(ref).To(Equal(uint64(76)))
+				Expect(ref).To(Equal(uint64(52)))
 			})
 
 			It("Should have written segments to storage", func() {
 				Expect(s.Data()).To(Equal([]byte{
 					// data chunk
-					0, 0, 0, 20,
-					0, 10,
-					0, 0,
+					0, 18,
+					10,
+					0,
 					0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-					0, 0, 0, 20,
 
 					// data chunk
-					0, 0, 0, 20,
-					0, 10,
-					0, 0,
+					0, 18,
+					10,
+					0,
 					16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-					0, 0, 0, 20,
 
 					// data chunk
-					0, 0, 0, 12,
 					0, 10,
-					0, 0,
+					10,
+					0,
 					32, 33, 34, 35, 36, 37, 38, 39,
-					0, 0, 0, 12,
 
 					// data header chunk
-					0, 0, 0, 36,
-					0, 11,
-					0, 3,
+					0, 34,
+					11,
+					3,
 					0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 28,
-					0, 0, 0, 0, 0, 0, 0, 56,
-
+					0, 0, 0, 0, 0, 0, 0, 20,
+					0, 0, 0, 0, 0, 0, 0, 40,
 					// size
 					0, 0, 0, 0, 0, 0, 0, 40,
-
-					0, 0, 0, 36,
 				}))
 			})
 
