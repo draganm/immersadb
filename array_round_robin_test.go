@@ -130,17 +130,17 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 									return err
 								}
 
-								// err = m.Delete(modifier.DBPath{"ar", 5})
-								// if err != nil {
-								// 	return err
-								// }
+								err = m.Delete(modifier.DBPath{"ar", 5})
+								if err != nil {
+									return err
+								}
 
 								return nil
 							})
 							Expect(err).ToNot(HaveOccurred())
 						})
-						FIt("should contain all 5 values", func() {
-							Expect(elements).To(Equal([]int{6, 5, 4, 3, 2, 1}))
+						It("should contain all 5 values", func() {
+							Expect(elements).To(Equal([]int{6, 5, 4, 3, 2}))
 						})
 
 					})
