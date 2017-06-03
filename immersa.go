@@ -9,18 +9,20 @@ import (
 	"github.com/draganm/immersadb/store"
 )
 
+const chunkSize = 32 * 1024
+
 // ImmersaDB represents an instance of the database.
 type ImmersaDB struct {
 	sync.RWMutex
-	store     *store.FileStore
-	chunkSize int
-	listeners []*listenerState
+	store       *store.SegmentedStore
+	segmentSize int
+	listeners   []*listenerState
 }
 
 // New creates a new instance of ImmersaDB.
-func New(path string, chunkSize int) (*ImmersaDB, error) {
+func New(path string, segmentSize int) (*ImmersaDB, error) {
 
-	s, err := store.NewFileStore(path)
+	s, err := store.NewSegmentedStore(path, segmentSize)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +41,8 @@ func New(path string, chunkSize int) (*ImmersaDB, error) {
 	}
 
 	return &ImmersaDB{
-		store:     s,
-		chunkSize: chunkSize,
+		store:       s,
+		segmentSize: segmentSize,
 	}, nil
 }
 
@@ -52,7 +54,7 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 
 	_, refs, _ := chunk.Parts(cs.Chunk(cs.NextChunkAddress() - chunk.CommitChunkSize))
 
-	m := modifier.New(cs, i.chunkSize, refs[0])
+	m := modifier.New(cs, chunkSize, refs[0])
 	err := t(m)
 	if err != nil {
 		return err
@@ -79,7 +81,7 @@ func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
 
 func (i *ImmersaDB) readTransaction(t func(modifier.EntityReader) error) error {
 	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
-	m := modifier.New(i.store, i.chunkSize, refs[0])
+	m := modifier.New(i.store, chunkSize, refs[0])
 	return t(m)
 }
 

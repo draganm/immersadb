@@ -4,7 +4,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/draganm/immersadb"
 	"github.com/draganm/immersadb/modifier"
@@ -25,12 +24,10 @@ var _ = Describe("ImmersaDB", func() {
 	var err error
 
 	var dir string
-	var dbFile string
 	BeforeEach(func() {
 		dir, err = ioutil.TempDir("", "")
 		Expect(err).ToNot(HaveOccurred())
-		dbFile = path.Join(dir, "db.data")
-		i, err = immersadb.New(dbFile, 128*1024)
+		i, err = immersadb.New(dir, 128*1024)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
