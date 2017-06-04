@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
 )
@@ -77,6 +78,27 @@ func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
 	return i.readTransaction(t)
+}
+
+func (i *ImmersaDB) GC() error {
+	i.Lock()
+	defer i.Unlock()
+	realSize := gc.Size(i.store)
+	inStore := i.store.BytesInStore()
+	if inStore-realSize > uint64(i.store.MaxSegmentSize) {
+		beg := i.store.NextChunkAddress()
+		err := gc.Copy(i.store, i.store)
+		if err != nil {
+			return err
+		}
+		err = i.store.DropBefore(beg)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func (i *ImmersaDB) readTransaction(t func(modifier.EntityReader) error) error {

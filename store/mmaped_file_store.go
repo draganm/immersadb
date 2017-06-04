@@ -80,6 +80,10 @@ func (s *FileStore) Close() error {
 	return s.file.Close()
 }
 
+func (s *FileStore) Delete() error {
+	return os.Remove(s.file.Name())
+}
+
 func (s *FileStore) BulkAppend(chunks [][]byte) error {
 
 	totalLength := 0

@@ -18,8 +18,12 @@ type Segment struct {
 type SegmentedStore struct {
 	fullSegments   []*Segment
 	currentSegment *Segment
-	maxSegmentSize int
+	MaxSegmentSize int
 	dir            string
+}
+
+func (s *Segment) endAddress() uint64 {
+	return s.start + s.FileStore.NextChunkAddress()
 }
 
 var segmentFilePattern = regexp.MustCompile(`^([a-fA-F0-9]{16}).seg$`)
@@ -70,13 +74,29 @@ func NewSegmentedStore(dir string, maxSegmentSize int) (*SegmentedStore, error) 
 	return &SegmentedStore{
 		fullSegments:   segments[:len(segments)-1],
 		currentSegment: segments[len(segments)-1],
-		maxSegmentSize: maxSegmentSize,
+		MaxSegmentSize: maxSegmentSize,
 		dir:            dir,
 	}, nil
 }
 
+func (ss *SegmentedStore) DropBefore(addr uint64) error {
+	for len(ss.fullSegments) > 0 && ss.fullSegments[0].endAddress() <= addr {
+		seg := ss.fullSegments[0]
+		err := seg.Close()
+		if err != nil {
+			return err
+		}
+		err = seg.Delete()
+		if err != nil {
+			return err
+		}
+		ss.fullSegments = ss.fullSegments[1:]
+	}
+	return nil
+}
+
 func (ss *SegmentedStore) Append(data []byte) (uint64, error) {
-	if int(ss.currentSegment.BytesInStore())+len(data)+4 > ss.maxSegmentSize {
+	if int(ss.currentSegment.BytesInStore())+len(data)+4 > ss.MaxSegmentSize {
 		start := ss.currentSegment.start + ss.currentSegment.BytesInStore()
 		fileName := fmt.Sprintf("%016x.seg", start)
 		fs, err := NewFileStore(filepath.Join(ss.dir, fileName))
@@ -140,7 +160,7 @@ func (ss *SegmentedStore) Close() error {
 }
 
 func (ss *SegmentedStore) BulkAppend(chunks [][]byte) error {
-	canAppend := ss.maxSegmentSize - int(ss.currentSegment.BytesInStore())
+	canAppend := ss.MaxSegmentSize - int(ss.currentSegment.BytesInStore())
 	appendToCurrent := [][]byte{}
 	for _, c := range chunks {
 		toAppend := len(c) + 4
@@ -163,11 +183,11 @@ func (ss *SegmentedStore) BulkAppend(chunks [][]byte) error {
 				ss.fullSegments = append(ss.fullSegments, ss.currentSegment)
 				ss.currentSegment = &Segment{start: start, FileStore: fs}
 
-				appendToCurrent = nil
-				canAppend = ss.maxSegmentSize
+				appendToCurrent = [][]byte{c}
+				canAppend = ss.MaxSegmentSize
 			}
 		}
-
+		canAppend -= toAppend
 	}
 
 	if len(appendToCurrent) > 0 {
