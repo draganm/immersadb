@@ -83,18 +83,17 @@ func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
 func (i *ImmersaDB) GC() error {
 	i.Lock()
 	defer i.Unlock()
+
 	realSize := gc.Size(i.store)
-	inStore := i.store.BytesInStore()
-	if inStore-realSize > uint64(i.store.MaxSegmentSize) {
-		beg := i.store.NextChunkAddress()
-		err := gc.Copy(i.store, i.store)
-		if err != nil {
-			return err
-		}
-		err = i.store.DropBefore(beg)
-		if err != nil {
-			return err
-		}
+	beg := i.store.NextChunkAddress() - realSize
+
+	err := gc.Evacuate(i.store, beg)
+	if err != nil {
+		return err
+	}
+	err = i.store.DropBefore(beg)
+	if err != nil {
+		return err
 	}
 
 	return nil

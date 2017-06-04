@@ -160,41 +160,51 @@ func (ss *SegmentedStore) Close() error {
 }
 
 func (ss *SegmentedStore) BulkAppend(chunks [][]byte) error {
-	canAppend := ss.MaxSegmentSize - int(ss.currentSegment.BytesInStore())
-	appendToCurrent := [][]byte{}
+
 	for _, c := range chunks {
-		toAppend := len(c) + 4
-		if toAppend <= canAppend {
-			appendToCurrent = append(appendToCurrent, c)
-		} else {
-			if len(appendToCurrent) > 0 {
-				err := ss.currentSegment.BulkAppend(appendToCurrent)
-				if err != nil {
-					return err
-				}
-
-				start := ss.currentSegment.start + ss.currentSegment.BytesInStore()
-				fileName := fmt.Sprintf("%016x.seg", start)
-				fs, err := NewFileStore(filepath.Join(ss.dir, fileName))
-				if err != nil {
-					return err
-				}
-
-				ss.fullSegments = append(ss.fullSegments, ss.currentSegment)
-				ss.currentSegment = &Segment{start: start, FileStore: fs}
-
-				appendToCurrent = [][]byte{c}
-				canAppend = ss.MaxSegmentSize
-			}
-		}
-		canAppend -= toAppend
-	}
-
-	if len(appendToCurrent) > 0 {
-		err := ss.currentSegment.BulkAppend(appendToCurrent)
+		_, err := ss.Append(c)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+
+	// canAppend := ss.MaxSegmentSize - int(ss.currentSegment.BytesInStore())
+	// appendToCurrent := [][]byte{}
+	// for _, c := range chunks {
+	// 	toAppend := len(c) + 4
+	// 	if toAppend <= canAppend {
+	// 		appendToCurrent = append(appendToCurrent, c)
+	// 	} else {
+	// 		if len(appendToCurrent) > 0 {
+	// 			log.Println("creating new segment")
+	// 			err := ss.currentSegment.BulkAppend(appendToCurrent)
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	//
+	// 			start := ss.currentSegment.start + ss.currentSegment.NextChunkAddress()
+	// 			fileName := fmt.Sprintf("%016x.seg", start)
+	// 			fs, err := NewFileStore(filepath.Join(ss.dir, fileName))
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	//
+	// 			ss.fullSegments = append(ss.fullSegments, ss.currentSegment)
+	// 			ss.currentSegment = &Segment{start: start, FileStore: fs}
+	//
+	// 			appendToCurrent = [][]byte{c}
+	// 			canAppend = ss.MaxSegmentSize
+	// 		}
+	// 	}
+	// 	canAppend -= toAppend
+	// }
+	//
+	// if len(appendToCurrent) > 0 {
+	// 	err := ss.currentSegment.BulkAppend(appendToCurrent)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+	// return nil
 }
