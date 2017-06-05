@@ -1,12 +1,12 @@
 package modifier_test
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/modifier"
+	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,13 +24,11 @@ var _ = Describe("Modifier", func() {
 	var m *modifier.Modifier
 	var err error
 	BeforeEach(func() {
-		s = store.NewMemoryStore([]byte{
-			// Hash Root Chunk
-			0, 2,
-			//
-			20,
-			0,
-		})
+		s = store.NewMemoryStore(nil)
+
+		_, err = ttfmap.CreateEmpty(s)
+		Expect(err).ToNot(HaveOccurred())
+
 		_, err = s.Append(chunk.NewCommitChunk(0))
 		Expect(err).ToNot(HaveOccurred())
 		m = modifier.New(s, 8192, chunk.LastCommitRootHashAddress(s))
@@ -62,7 +60,7 @@ var _ = Describe("Modifier", func() {
 
 		Context("When the hash value exists", func() {
 			BeforeEach(func() {
-				Expect(m.CreateHash(modifier.DBPath{"test"})).To(Succeed())
+				Expect(m.CreateMap(modifier.DBPath{"test"})).To(Succeed())
 				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -72,8 +70,8 @@ var _ = Describe("Modifier", func() {
 					Expect(err).ToNot(HaveOccurred())
 					t = er.Type()
 				})
-				It("Should return Hash", func() {
-					Expect(t).To(Equal(modifier.Hash))
+				It("Should return Map", func() {
+					Expect(t).To(Equal(modifier.Map))
 				})
 			})
 		})
@@ -96,7 +94,7 @@ var _ = Describe("Modifier", func() {
 
 	})
 
-	Describe("ForEachHashEntry", func() {
+	Describe("ForEachMapEntry", func() {
 		Context("When there is one value", func() {
 			BeforeEach(func() {
 				Expect(m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
@@ -109,7 +107,7 @@ var _ = Describe("Modifier", func() {
 				var values map[string]string
 				BeforeEach(func() {
 					values = map[string]string{}
-					err = m.ForEachHashEntry(func(key string, reader modifier.EntityReader) error {
+					err = m.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
 						r, e := reader.Data()
 						if e != nil {
 							return e
@@ -142,7 +140,7 @@ var _ = Describe("Modifier", func() {
 						var values map[string]string
 						BeforeEach(func() {
 							values = map[string]string{}
-							err = m.ForEachHashEntry(func(key string, reader modifier.EntityReader) error {
+							err = m.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
 								r, e := reader.Data()
 								if e != nil {
 									return e
@@ -343,134 +341,6 @@ var _ = Describe("Modifier", func() {
 			})
 		})
 
-		Context("When I create 16 value entries", func() {
-			BeforeEach(func() {
-				for i := 0; i < 16; i++ {
-					err = m.CreateData(modifier.DBPath{fmt.Sprintf("test-%d", i)}, func(w io.Writer) error {
-						_, e := w.Write([]byte("test-test-test"))
-						return e
-					})
-					Expect(err).ToNot(HaveOccurred())
-				}
-				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
-				Expect(err).ToNot(HaveOccurred())
-
-			})
-
-			It("Should have Hash leaf as last chunk with 16 refs", func() {
-				t, refs, _ := chunk.Parts(s.Chunk(chunk.LastCommitRootHashAddress(s)))
-				Expect(t).To(Equal(chunk.HashLeafType))
-				Expect(len(refs)).To(Equal(16))
-			})
-
-			Context("When I get one of the values", func() {
-				var r io.Reader
-				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test-1"})
-					Expect(err).ToNot(HaveOccurred())
-					r, err = er.Data()
-				})
-				It("Should not return error", func() {
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				Context("When I read the value", func() {
-					var data []byte
-					BeforeEach(func() {
-						data, err = ioutil.ReadAll(r)
-					})
-					It("Should not return error", func() {
-						Expect(err).ToNot(HaveOccurred())
-					})
-					It("Should read the correct value", func() {
-						Expect(string(data)).To(Equal("test-test-test"))
-					})
-				})
-			})
-
-			Context("When I add one more entry", func() {
-				BeforeEach(func() {
-					err = m.CreateData(modifier.DBPath{"oops!oops!"}, func(w io.Writer) error {
-						_, e := w.Write([]byte("test-test-test"))
-						return e
-					})
-					Expect(err).ToNot(HaveOccurred())
-					_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
-					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("Should have Hash node", func() {
-					t, _, _ := chunk.Parts(s.Chunk(chunk.LastCommitRootHashAddress(s)))
-					Expect(t).To(Equal(chunk.HashNodeType))
-				})
-
-				Context("When I get one of the values", func() {
-					var r io.Reader
-					BeforeEach(func() {
-						er, err := m.EntityReaderFor(modifier.DBPath{"test-15"})
-						Expect(err).ToNot(HaveOccurred())
-						r, err = er.Data()
-					})
-					It("Should not return error", func() {
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					Context("When I read the value", func() {
-						var data []byte
-						BeforeEach(func() {
-							data, err = ioutil.ReadAll(r)
-						})
-						It("Should not return error", func() {
-							Expect(err).ToNot(HaveOccurred())
-						})
-						It("Should read the correct value", func() {
-							Expect(string(data)).To(Equal("test-test-test"))
-						})
-					})
-				})
-
-				Context("When I add another entry", func() {
-					BeforeEach(func() {
-						err = m.CreateData(modifier.DBPath{"oops!oops!"}, func(w io.Writer) error {
-							_, e := w.Write([]byte("test-test-test"))
-							return e
-						})
-					})
-					It("Should not return error", func() {
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					Context("When I get one of the values", func() {
-						var r io.Reader
-						BeforeEach(func() {
-							er, err := m.EntityReaderFor(modifier.DBPath{"oops!oops!"})
-							Expect(err).ToNot(HaveOccurred())
-							r, err = er.Data()
-						})
-						It("Should not return error", func() {
-							Expect(err).ToNot(HaveOccurred())
-						})
-
-						Context("When I read the value", func() {
-							var data []byte
-							BeforeEach(func() {
-								data, err = ioutil.ReadAll(r)
-							})
-							It("Should not return error", func() {
-								Expect(err).ToNot(HaveOccurred())
-							})
-							It("Should read the correct value", func() {
-								Expect(string(data)).To(Equal("test-test-test"))
-							})
-						})
-					})
-
-				})
-
-			})
-
-		})
-
 		Context("When the path has only one string entry", func() {
 			BeforeEach(func() {
 				err = m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
@@ -486,48 +356,6 @@ var _ = Describe("Modifier", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("Should create two more chunks", func() {
-				Expect(s.Data()).To(Equal([]byte{
-					// old root
-					0, 2,
-					20,
-					0,
-
-					// old commit
-					0, 10,
-					1,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 0,
-
-					// Data chunk
-					0, 6,
-					10,
-					0,
-					1, 2, 3, 4,
-
-					// Data header chunk
-					0, 18,
-					11,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 16,
-					// size
-					0, 0, 0, 0, 0, 0, 0, 4,
-
-					// New root
-					0, 16,
-					20,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 24,
-					0, 4, 116, 101, 115, 116,
-
-					// New commit
-					0, 10,
-					1,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 44,
-				}))
-			})
-
 		})
 	})
 
@@ -541,82 +369,23 @@ var _ = Describe("Modifier", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("Should create two more chunks", func() {
-				Expect(s.Data()).To(Equal([]byte{
-
-					// old root
-					0, 2,
-					20,
-					0,
-
-					// old commit
-					0, 10,
-					1,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 0,
-
-					// empty array
-					0, 2,
-					30,
-					0,
-
-					// new root
-					0, 16,
-					20,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 16,
-					// 'test'
-					0, 4, 116, 101, 115, 116,
-				}))
-			})
-
 		})
 	})
 
-	Describe("CreateHash", func() {
+	Describe("CreateMap", func() {
 
 		Context("When the path has only one string entry", func() {
 			BeforeEach(func() {
-				err = m.CreateHash(modifier.DBPath{"test"})
+				err = m.CreateMap(modifier.DBPath{"test"})
 			})
 
 			It("Shoud not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("Should create two more chunks", func() {
-				Expect(s.Data()).To(Equal([]byte{
-					// old root
-					0, 2,
-					20,
-					0,
-
-					// old commit
-					0, 10,
-					1,
-					1,
-					0, 0, 0, 0, 0, 0, 0, 0,
-
-					// new leaf
-					0, 2,
-					20,
-					0,
-
-					// new root
-					0, 16,
-					20,
-					// refs
-					1,
-					// ref to new leaf
-					0, 0, 0, 0, 0, 0, 0, 16,
-					// 'test'
-					0, 4, 116, 101, 115, 116,
-				}))
-			})
-
 			Context("When I create a nested hash", func() {
 				BeforeEach(func() {
-					err = m.CreateHash(modifier.DBPath{"test", "test2"})
+					err = m.CreateMap(modifier.DBPath{"test", "test2"})
 				})
 				It("Should not return error", func() {
 					Expect(err).ToNot(HaveOccurred())
@@ -625,61 +394,11 @@ var _ = Describe("Modifier", func() {
 
 			Context("When I create another at the root level", func() {
 				BeforeEach(func() {
-					err = m.CreateHash(modifier.DBPath{"test2"})
+					err = m.CreateMap(modifier.DBPath{"test2"})
 				})
 
 				It("Shoud not return an error", func() {
 					Expect(err).ToNot(HaveOccurred())
-				})
-
-				It("Should create two more chunks", func() {
-					Expect(s.Data()).To(Equal([]byte{
-						// initial root
-						0, 2,
-						20,
-						0,
-
-						// Old commit
-
-						0, 10,
-						1,
-						1,
-						0, 0, 0, 0, 0, 0, 0, 0,
-
-						// new leaf
-						0, 2,
-						20,
-						0,
-
-						// previous root
-						0, 16,
-						20,
-						// refs
-						1,
-						// ref to new leaf
-						0, 0, 0, 0, 0, 0, 0, 16,
-						// 'test'
-						0, 4, 116, 101, 115, 116,
-
-						// empty test2 hash
-						0, 2,
-						20,
-						0,
-
-						// new root
-						0, 31,
-						20,
-
-						// 2 refs
-						2,
-						0, 0, 0, 0, 0, 0, 0, 16,
-						0, 0, 0, 0, 0, 0, 0, 38,
-
-						// test
-						0, 4, 116, 101, 115, 116,
-						// test2
-						0, 5, 116, 101, 115, 116, 50,
-					}))
 				})
 
 			})

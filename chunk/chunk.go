@@ -8,10 +8,10 @@ const ErrorType ChunkType = 0
 const CommitType ChunkType = 1
 const DataType ChunkType = 10
 const DataHeaderType ChunkType = 11
-const HashLeafType ChunkType = 20
-const HashNodeType ChunkType = 21
 const ArrayLeafType ChunkType = 30
 const ArrayNodeType ChunkType = 31
+
+const TTFMapNode ChunkType = 40
 
 const CommitChunkSize = uint64(2 + 2 + 8)
 

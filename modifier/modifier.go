@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
 )
 
@@ -40,11 +41,11 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 	switch path[0].(type) {
 	case string:
 		key := path[0].(string)
-		if m.rootType() != chunk.HashLeafType && m.rootType() != chunk.HashNodeType {
+		if m.rootType() != chunk.TTFMapNode {
 			return errors.New("Value is not a hash")
 		}
 
-		address, err := m.lookupAddressInHash(m.RootAddress, key)
+		address, err := ttfmap.Lookup(m.Store, m.RootAddress, key)
 		if err != nil {
 			return err
 		}
@@ -54,7 +55,8 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 		if err != nil {
 			return err
 		}
-		newRoot, err := m.addToHash(m.RootAddress, key, sub.RootAddress)
+
+		newRoot, err := ttfmap.Insert(m.Store, m.RootAddress, key, sub.RootAddress)
 		if err != nil {
 			return err
 		}
@@ -85,7 +87,7 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 
 }
 
-func (m *Modifier) CreateHash(path DBPath) error {
+func (m *Modifier) CreateMap(path DBPath) error {
 
 	last := path[len(path)-1]
 
@@ -93,12 +95,13 @@ func (m *Modifier) CreateHash(path DBPath) error {
 
 		switch last.(type) {
 		case string:
-			valueAddr, err := vm.Append(refmapToData(map[string]uint64{}))
+			valueAddr, err := ttfmap.CreateEmpty(m.Store)
 			if err != nil {
 				return err
 			}
 
-			newRoot, err := vm.addToHash(vm.RootAddress, last.(string), valueAddr)
+			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
+
 			if err != nil {
 				return err
 			}
@@ -112,7 +115,7 @@ func (m *Modifier) CreateHash(path DBPath) error {
 				return errors.New("Can only append to the head of the array")
 			}
 
-			valueAddr, err := vm.Append(refmapToData(map[string]uint64{}))
+			valueAddr, err := ttfmap.CreateEmpty(m.Store)
 			if err != nil {
 				return err
 			}
@@ -145,7 +148,8 @@ func (m *Modifier) CreateArray(path DBPath) error {
 				return err
 			}
 
-			newRoot, err := vm.addToHash(vm.RootAddress, last.(string), valueAddr)
+			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
+
 			if err != nil {
 				return err
 			}
@@ -178,7 +182,7 @@ func (m *Modifier) CreateData(path DBPath, f func(io.Writer) error) error {
 				return err
 			}
 
-			newRoot, err := vm.addToHash(vm.RootAddress, last.(string), valueAddr)
+			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
 			if err != nil {
 				return err
 			}
@@ -223,11 +227,11 @@ func (m *Modifier) lookupAddress(path DBPath, from uint64) (uint64, error) {
 		switch path[0].(type) {
 		case string:
 			key := path[0].(string)
-			if m.rootType() != chunk.HashLeafType && m.rootType() != chunk.HashNodeType {
+			if m.rootType() != chunk.TTFMapNode {
 				return 0, errors.New("Value is not a hash")
 			}
 
-			address, err := m.lookupAddressInHash(from, key)
+			address, err := ttfmap.Lookup(m.Store, from, key)
 			if err != nil {
 				return 0, err
 			}
@@ -252,9 +256,10 @@ func (m *Modifier) Data() (io.Reader, error) {
 	return NewDataReader(m.Store, m.RootAddress)
 }
 
-func (m *Modifier) ForEachHashEntry(f func(key string, reader EntityReader) error) error {
-	return m.forEachHashEntry(m.RootAddress, func(key string, ref uint64) error {
+func (m *Modifier) ForEachMapEntry(f func(key string, reader EntityReader) error) error {
+	return ttfmap.ForEach(m.Store, m.RootAddress, func(key string, ref uint64) error {
 		return f(key, New(m.Store, m.chunkSize, ref))
+
 	})
 }
 
@@ -274,8 +279,7 @@ func (m *Modifier) Exists(path DBPath) bool {
 
 var valueTypeByChunkType = map[chunk.ChunkType]EntityType{
 	chunk.DataHeaderType: Data,
-	chunk.HashLeafType:   Hash,
-	chunk.HashNodeType:   Hash,
+	chunk.TTFMapNode:     Map,
 	chunk.ArrayLeafType:  Array,
 	chunk.ArrayNodeType:  Array,
 }
@@ -304,12 +308,11 @@ func (m *Modifier) HasPath(path DBPath) bool {
 
 func (m *Modifier) Size() uint64 {
 	addr := m.RootAddress
-	chunkType, refs, data := chunk.Parts(m.Chunk(addr))
+	chunkType, _, data := chunk.Parts(m.Chunk(addr))
 	switch chunkType {
-	case chunk.HashLeafType:
-		return uint64(len(refs))
-	case chunk.HashNodeType:
-		return binary.BigEndian.Uint64(data)
+	case chunk.TTFMapNode:
+		// return uint64(len(refs))
+		return 0
 	case chunk.ArrayNodeType, chunk.ArrayLeafType:
 		// switching for the type, so error should
 		// never be returned
@@ -334,7 +337,7 @@ func (m *Modifier) Delete(path DBPath) error {
 	return m.modify(path[:len(path)-1], func(mm *Modifier) error {
 		switch lastElement.(type) {
 		case string:
-			addr, err := mm.deleteFromHash(mm.RootAddress, lastElement.(string))
+			addr, err := ttfmap.Delete(m.Store, mm.RootAddress, lastElement.(string))
 			if err != nil {
 				return err
 			}
