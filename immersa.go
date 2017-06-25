@@ -7,6 +7,7 @@ import (
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
+	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
 )
 
@@ -29,7 +30,7 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 	}
 
 	if s.NextChunkAddress() == 0 {
-		addr, err := s.Append(chunk.Pack(chunk.HashLeafType, nil, nil))
+		addr, err := ttfmap.CreateEmpty(s)
 		if err != nil {
 			return nil, err
 		}

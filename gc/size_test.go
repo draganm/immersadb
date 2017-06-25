@@ -4,6 +4,7 @@ import (
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
+	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +24,7 @@ var _ = Describe("Size", func() {
 
 	Context("When storage contains an empty hash", func() {
 		BeforeEach(func() {
-			addr, err := s.Append(chunk.Pack(chunk.HashLeafType, nil, nil))
+			addr, err := ttfmap.CreateEmpty(s)
 			Expect(err).ToNot(HaveOccurred())
 			_, err = s.Append(chunk.NewCommitChunk(addr))
 			Expect(err).ToNot(HaveOccurred())
