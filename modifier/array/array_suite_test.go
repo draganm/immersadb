@@ -118,7 +118,7 @@ var _ = Describe("Array", func() {
 							2,
 							0, 0, 0, 0, 0, 0, 0, 110,
 							0, 0, 0, 0, 0, 0, 0, 72,
-							1, 4,
+							1, 5,
 						}))
 					})
 
@@ -137,7 +137,7 @@ var _ = Describe("Array", func() {
 								2,
 								0, 0, 0, 0, 0, 0, 0, 110,
 								0, 0, 0, 0, 0, 0, 0, 72,
-								1, 4,
+								1, 5,
 
 								0, 20,
 								30,
@@ -151,10 +151,10 @@ var _ = Describe("Array", func() {
 								2,
 								0, 0, 0, 0, 0, 0, 0, 146,
 								0, 0, 0, 0, 0, 0, 0, 72,
-								1, 5,
+								1, 6,
 							}))
 						})
-						Context("When I prepend 6,8,9th element", func() {
+						Context("When I prepend 6,7,8,9,10th element", func() {
 							BeforeEach(func() {
 								rootAddress, err = array.Prepend(s, rootAddress, 100006)
 								Expect(err).ToNot(HaveOccurred())
@@ -176,7 +176,8 @@ var _ = Describe("Array", func() {
 									0, 0, 0, 0, 0, 0, 1, 46,
 									0, 0, 0, 0, 0, 0, 0, 242,
 									0, 0, 0, 0, 0, 0, 0, 72,
-									1, 8,
+									1, 9,
+
 									0, 20,
 									30,
 									2,
@@ -190,8 +191,52 @@ var _ = Describe("Array", func() {
 									0, 0, 0, 0, 0, 0, 1, 90,
 									0, 0, 0, 0, 0, 0, 0, 242,
 									0, 0, 0, 0, 0, 0, 0, 72,
-									1, 9,
+									1, 10,
 								}))
+							})
+
+							Context("When I prepend up to 17th element", func() {
+								BeforeEach(func() {
+									for i := 10; i < 16; i++ {
+										rootAddress, err = array.Prepend(s, rootAddress, 100000+uint64(i))
+										Expect(err).ToNot(HaveOccurred())
+									}
+									oldRoot = rootAddress
+									rootAddress, err = array.Prepend(s, rootAddress, 100016)
+								})
+								It("Should not return error", func() {
+									Expect(err).ToNot(HaveOccurred())
+								})
+								It("Should Create a level 1 and two level 0 arrays with four and one element(s)", func() {
+									Expect(s.Data()[oldRoot:]).To(Equal([]byte{
+										0, 36,
+										30,
+										4,
+										0, 0, 0, 0, 0, 0, 2, 194,
+										0, 0, 0, 0, 0, 0, 1, 202,
+										0, 0, 0, 0, 0, 0, 0, 242,
+										0, 0, 0, 0, 0, 0, 0, 72,
+										1, 16,
+
+										0, 12,
+										30,
+										1,
+										0, 0, 0, 0, 0, 1, 134, 176,
+										0, 1,
+
+										0, 12,
+										30,
+										1,
+										0, 0, 0, 0, 0, 0, 3, 14,
+										1, 1,
+
+										0, 20,
+										30, 2,
+										0, 0, 0, 0, 0, 0, 3, 28,
+										0, 0, 0, 0, 0, 0, 2, 232,
+										2, 17,
+									}))
+								})
 							})
 						})
 					})

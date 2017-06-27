@@ -67,42 +67,39 @@ func (la *LazyArray) Prepend(addr uint64) {
 		la.dirty = true
 		return
 	}
-	if la.level == 0 {
-		oldChild := *la
-		newChild := *la
-		newChild.values = []uint64{addr}
-		newChild.dirty = true
-		newChild.count = 1
-		la.children = []*LazyArray{&newChild, &oldChild}
 
-		la.values = nil
-		la.dirty = true
-		la.level++
-		return
+	if !la.canPrepend() {
+		la.newLevel()
 	}
 
-	if la.children[0].canPrepend() {
+	if len(la.children) > 0 && la.children[0].canPrepend() {
 		la.children[0].Prepend(addr)
 		la.count++
 		la.dirty = true
 		return
 	}
 
-	if len(la.children) < maxChildren {
-		newChild := &LazyArray{
-			s:      la.s,
-			dirty:  true,
-			loaded: true,
-			level:  la.level - 1,
-		}
-		la.children = append([]*LazyArray{newChild}, la.children...)
-		la.dirty = true
-		la.count++
-		newChild.Prepend(addr)
-		return
+	la.prependChild()
+
+	la.Prepend(addr)
+}
+
+func (la *LazyArray) prependChild() {
+	child := &LazyArray{
+		s:      la.s,
+		level:  la.level - 1,
+		loaded: true,
+		dirty:  true,
 	}
 
-	panic("not yet implemented")
+	la.children = append([]*LazyArray{child}, la.children...)
+}
+
+func (la *LazyArray) newLevel() {
+	child := *la
+	la.children = []*LazyArray{&child}
+	la.values = nil
+	la.level++
 }
 
 func (la *LazyArray) canPrepend() bool {
@@ -110,7 +107,12 @@ func (la *LazyArray) canPrepend() bool {
 	if la.level == 0 {
 		return len(la.values) < maxChildren
 	}
-	childCanPrepend := la.canPrepend()
+
+	if len(la.children) == 0 {
+		return true
+	}
+
+	childCanPrepend := la.children[0].canPrepend()
 	if childCanPrepend {
 		return true
 	}
