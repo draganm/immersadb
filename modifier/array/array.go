@@ -56,11 +56,68 @@ func (la *LazyArray) load() {
 	}
 }
 
+const maxChildren = 4
+
 func (la *LazyArray) Prepend(addr uint64) {
 	la.load()
-	la.values = append([]uint64{addr}, la.values...)
-	la.count++
-	la.dirty = true
+
+	if la.level == 0 && len(la.values) < maxChildren {
+		la.values = append([]uint64{addr}, la.values...)
+		la.count++
+		la.dirty = true
+		return
+	}
+	if la.level == 0 {
+		oldChild := *la
+		newChild := *la
+		newChild.values = []uint64{addr}
+		newChild.dirty = true
+		newChild.count = 1
+		la.children = []*LazyArray{&newChild, &oldChild}
+
+		la.values = nil
+		la.dirty = true
+		la.level++
+		return
+	}
+
+	if la.children[0].canPrepend() {
+		la.children[0].Prepend(addr)
+		la.count++
+		la.dirty = true
+		return
+	}
+
+	if len(la.children) < maxChildren {
+		newChild := &LazyArray{
+			s:      la.s,
+			dirty:  true,
+			loaded: true,
+			level:  la.level - 1,
+		}
+		la.children = append([]*LazyArray{newChild}, la.children...)
+		la.dirty = true
+		la.count++
+		newChild.Prepend(addr)
+		return
+	}
+
+	panic("not yet implemented")
+}
+
+func (la *LazyArray) canPrepend() bool {
+	la.load()
+	if la.level == 0 {
+		return len(la.values) < maxChildren
+	}
+	childCanPrepend := la.canPrepend()
+	if childCanPrepend {
+		return true
+	}
+	if len(la.children) < maxChildren {
+		return true
+	}
+	return false
 }
 
 func (la *LazyArray) Load() error {
@@ -131,7 +188,8 @@ func (la *LazyArray) Store() (uint64, error) {
 	refs := []uint64{}
 
 	for _, c := range la.children {
-		a, err := c.Store()
+		var a uint64
+		a, err = c.Store()
 		if err != nil {
 			return 0, err
 		}
