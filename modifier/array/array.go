@@ -9,6 +9,22 @@ import (
 )
 
 var ErrNotArrayChunk = errors.New("Is not array chunk")
+var ErrDeletingFromEmpty = errors.New("Deleting from empty array")
+var ErrDoesNotExist = errors.New("Array does not contain the element")
+
+func Size(s store.Store, addr uint64) uint64 {
+	la := &LazyArray{s: s, address: addr}
+	return la.size()
+}
+
+func DeleteLast(s store.Store, addr uint64) (uint64, error) {
+	la := &LazyArray{s: s, address: addr}
+	err := la.deleteLast()
+	if err != nil {
+		return 0, err
+	}
+	return la.Store()
+}
 
 func CreateEmpty(s store.Store) (uint64, error) {
 	la := &LazyArray{s: s, dirty: true}
@@ -25,14 +41,19 @@ func Prepend(s store.Store, addr uint64, vaddr uint64) (uint64, error) {
 	la.Prepend(vaddr)
 
 	return la.Store()
-
 }
 
-// func NewLazyArray(s store.Store) *LazyArray {
-//   return &LazyArray{
-//     store: s
-//   }
-// }
+func Get(s store.Store, addr, index uint64) (uint64, error) {
+	la := &LazyArray{s: s, address: addr}
+	err := la.Load()
+	if err != nil {
+		return 0, err
+	}
+	if index >= la.size() {
+		return 0, ErrDoesNotExist
+	}
+	return la.lookup(index), nil
+}
 
 type LazyArray struct {
 	values   []uint64
@@ -46,6 +67,30 @@ type LazyArray struct {
 	dirty   bool
 }
 
+func (la *LazyArray) lookup(i uint64) uint64 {
+	la.load()
+	if la.level == 0 {
+		return la.values[i]
+	}
+
+	for _, ch := range la.children {
+		ch.load()
+		childSize := ch.size()
+		if i < childSize {
+			return ch.lookup(i)
+		}
+		i -= childSize
+	}
+
+	panic("should never happen!")
+
+}
+
+func (la *LazyArray) size() uint64 {
+	la.load()
+	return la.count
+}
+
 func (la *LazyArray) load() {
 	if la.loaded {
 		return
@@ -57,6 +102,28 @@ func (la *LazyArray) load() {
 }
 
 const maxChildren = 4
+
+// DeleteLast deletes last element of the array
+func (la *LazyArray) deleteLast() error {
+
+	err := la.Load()
+	if err != nil {
+		return err
+	}
+
+	if la.level == 0 && len(la.values) == 0 {
+		return ErrDeletingFromEmpty
+	}
+
+	if la.level == 0 {
+		la.values = la.values[:len(la.values)-1]
+		la.count--
+		la.dirty = true
+		return nil
+	}
+	la.dirty = true
+	return nil
+}
 
 func (la *LazyArray) Prepend(addr uint64) {
 	la.load()

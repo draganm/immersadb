@@ -20,6 +20,7 @@ var _ = Describe("Array", func() {
 	var err error
 	BeforeEach(func() {
 		s = store.NewMemoryStore(nil)
+		rootAddress = 0
 	})
 
 	Describe("CreateEmpty()", func() {
@@ -35,6 +36,50 @@ var _ = Describe("Array", func() {
 				30, 0,
 				0, 0,
 			}))
+		})
+	})
+
+	Describe("DeleteLast()", func() {
+		JustBeforeEach(func() {
+			rootAddress, err = array.DeleteLast(s, rootAddress)
+		})
+
+		BeforeEach(func() {
+			rootAddress, err = array.CreateEmpty(s)
+			Expect(err).ToNot(HaveOccurred())
+		})
+		Context("When deleting last from an empty array", func() {
+			It("Should return error", func() {
+				Expect(err).To(Equal(array.ErrDeletingFromEmpty))
+			})
+		})
+		Context("When deleting from an array with 1 element", func() {
+			BeforeEach(func() {
+				rootAddress, err = array.Prepend(s, rootAddress, 100000000)
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should delete the last value from the array", func() {
+				s := array.Size(s, rootAddress)
+				Expect(s).To(Equal(uint64(0)))
+			})
+		})
+		Context("When deleting from an array with 2 elements", func() {
+			BeforeEach(func() {
+				rootAddress, err = array.Prepend(s, rootAddress, 100000000)
+				Expect(err).ToNot(HaveOccurred())
+				rootAddress, err = array.Prepend(s, rootAddress, 100000001)
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should delete the last value from the array", func() {
+				s := array.Size(s, rootAddress)
+				Expect(s).To(Equal(uint64(1)))
+			})
 		})
 	})
 
