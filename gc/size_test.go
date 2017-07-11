@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
@@ -38,7 +39,7 @@ var _ = Describe("Size", func() {
 		Context("When I add a value to the hash", func() {
 			BeforeEach(func() {
 				m := modifier.New(s, 1024, chunk.LastCommitRootHashAddress(s))
-				Expect(m.CreateArray(modifier.DBPath{"test"})).To(Succeed())
+				Expect(m.CreateArray(dbpath.Path{"test"})).To(Succeed())
 				_, err := s.Append(chunk.NewCommitChunk(m.RootAddress))
 				Expect(err).ToNot(HaveOccurred())
 			})

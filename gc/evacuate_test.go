@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
@@ -93,7 +94,7 @@ var _ = Describe("Evacuate", func() {
 				_, refs, _ := chunk.Parts(s.Chunk(s.NextChunkAddress() - chunk.CommitChunkSize))
 				m := modifier.New(s, 8192, refs[0])
 
-				Expect(m.CreateArray(modifier.DBPath{"x"})).To(Succeed())
+				Expect(m.CreateArray(dbpath.Path{"x"})).To(Succeed())
 				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
 				Expect(err).ToNot(HaveOccurred())
 

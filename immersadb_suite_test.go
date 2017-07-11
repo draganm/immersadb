@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/draganm/immersadb"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,11 +43,11 @@ var _ = Describe("ImmersaDB", func() {
 			BeforeEach(func() {
 				for j := 0; j < 180; j++ {
 					err := i.Transaction(func(m modifier.EntityWriter) error {
-						return m.CreateMap(modifier.DBPath{"test"})
+						return m.CreateMap(dbpath.Path{"test"})
 					})
 					Expect(err).ToNot(HaveOccurred())
 					err = i.Transaction(func(m modifier.EntityWriter) error {
-						return m.Delete(modifier.DBPath{"test"})
+						return m.Delete(dbpath.Path{"test"})
 					})
 					Expect(err).ToNot(HaveOccurred())
 				}
@@ -75,7 +76,7 @@ var _ = Describe("ImmersaDB", func() {
 		Context("When data value is created", func() {
 			BeforeEach(func() {
 				err = i.Transaction(func(m modifier.EntityWriter) error {
-					return m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+					return m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 						_, e := w.Write([]byte("test"))
 						return e
 					})
@@ -88,7 +89,7 @@ var _ = Describe("ImmersaDB", func() {
 			Context("When I add a listener for that value", func() {
 				var data []byte
 				BeforeEach(func() {
-					i.AddListenerFunc(modifier.DBPath{"test"}, func(r modifier.EntityReader) {
+					i.AddListenerFunc(dbpath.Path{"test"}, func(r modifier.EntityReader) {
 						reader := r.Data()
 						data, err = ioutil.ReadAll(reader)
 						Expect(err).ToNot(HaveOccurred())
@@ -100,7 +101,7 @@ var _ = Describe("ImmersaDB", func() {
 				Context("When I change the value", func() {
 					BeforeEach(func() {
 						err = i.Transaction(func(m modifier.EntityWriter) error {
-							return m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+							return m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 								_, e := w.Write([]byte("test123"))
 								return e
 							})
@@ -121,7 +122,7 @@ var _ = Describe("ImmersaDB", func() {
 
 		var called bool
 		JustBeforeEach(func() {
-			i.AddListenerFunc(modifier.DBPath{"test"}, func(r modifier.EntityReader) {
+			i.AddListenerFunc(dbpath.Path{"test"}, func(r modifier.EntityReader) {
 				called = true
 			})
 		})
@@ -133,7 +134,7 @@ var _ = Describe("ImmersaDB", func() {
 		Context("When the value exists", func() {
 			BeforeEach(func() {
 				err := i.Transaction(func(w modifier.EntityWriter) error {
-					return w.CreateMap(modifier.DBPath{"test"})
+					return w.CreateMap(dbpath.Path{"test"})
 				})
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -149,24 +150,24 @@ var _ = Describe("ImmersaDB", func() {
 			var listener func(r modifier.EntityReader)
 			BeforeEach(func() {
 				err := i.Transaction(func(w modifier.EntityWriter) error {
-					return w.CreateMap(modifier.DBPath{"test"})
+					return w.CreateMap(dbpath.Path{"test"})
 				})
 				Expect(err).ToNot(HaveOccurred())
 				listener = func(r modifier.EntityReader) {
 					called = true
 				}
-				i.AddListenerFunc(modifier.DBPath{"test"}, listener)
+				i.AddListenerFunc(dbpath.Path{"test"}, listener)
 			})
 
 			Context("When I remove the listener", func() {
 				BeforeEach(func() {
-					i.RemoveListenerFunc(modifier.DBPath{"test"}, listener)
+					i.RemoveListenerFunc(dbpath.Path{"test"}, listener)
 					called = false
 				})
 				Context("When I change the value", func() {
 					BeforeEach(func() {
 						err := i.Transaction(func(w modifier.EntityWriter) error {
-							return w.CreateMap(modifier.DBPath{"test", "test2"})
+							return w.CreateMap(dbpath.Path{"test", "test2"})
 						})
 						Expect(err).ToNot(HaveOccurred())
 					})
@@ -197,7 +198,7 @@ var _ = Describe("ImmersaDB", func() {
 		Context("When the database has one value", func() {
 			BeforeEach(func() {
 				Expect(i.Transaction(func(w modifier.EntityWriter) error {
-					return w.CreateMap(modifier.DBPath{"test"})
+					return w.CreateMap(dbpath.Path{"test"})
 				}))
 			})
 			Context("When I get the size of the root", func() {
