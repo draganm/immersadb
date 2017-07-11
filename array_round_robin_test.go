@@ -55,16 +55,10 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 				JustBeforeEach(func() {
 					elements = nil
 					err := i.ReadTransaction(func(er modifier.EntityReader) error {
-						ser, err := er.EntityReaderFor(modifier.DBPath{"ar"})
-						if err != nil {
-							return err
-						}
+						ser := er.EntityReaderFor(modifier.DBPath{"ar"})
 						return ser.ForEachArrayElement(func(index uint64, reader modifier.EntityReader) error {
 							var el int
-							r, err := reader.Data()
-							if err != nil {
-								return err
-							}
+							r := reader.Data()
 							err = msgpack.NewDecoder(r).Decode(&el)
 							if err != nil {
 								return err
@@ -104,10 +98,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 					It("Should have Size 4", func() {
 						var size uint64
 						err := i.ReadTransaction(func(er modifier.EntityReader) error {
-							ser, err := er.EntityReaderFor(modifier.DBPath{"ar"})
-							if err != nil {
-								return err
-							}
+							ser := er.EntityReaderFor(modifier.DBPath{"ar"})
 							size = ser.Size()
 							return nil
 						})

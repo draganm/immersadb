@@ -166,19 +166,14 @@ func (i *ImmersaDB) RemoveListener(matcher modifier.DBPath, f Listener) {
 
 func (ls *listenerState) checkForChange(i *ImmersaDB) {
 	i.readTransaction(func(r modifier.EntityReader) error {
-		var err error
-		re, err := r.EntityReaderFor(ls.matcher)
-		if err != nil {
-			return err
-		}
-		addr := re.Address()
-		if addr != ls.latestState {
-			sr, err := r.EntityReaderFor(ls.matcher)
-			if err != nil {
-				return err
+		if r.Exists(ls.matcher) {
+			re := r.EntityReaderFor(ls.matcher)
+			addr := re.Address()
+			if addr != ls.latestState {
+				sr := r.EntityReaderFor(ls.matcher)
+				ls.listener.OnChange(sr)
+				ls.latestState = addr
 			}
-			ls.listener.OnChange(sr)
-			ls.latestState = addr
 		}
 		return nil
 	})

@@ -48,8 +48,7 @@ var _ = Describe("Modifier", func() {
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-					Expect(err).ToNot(HaveOccurred())
+					er := m.EntityReaderFor(modifier.DBPath{"test"})
 					t = er.Type()
 				})
 				It("Should return Data", func() {
@@ -66,8 +65,7 @@ var _ = Describe("Modifier", func() {
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-					Expect(err).ToNot(HaveOccurred())
+					er := m.EntityReaderFor(modifier.DBPath{"test"})
 					t = er.Type()
 				})
 				It("Should return Map", func() {
@@ -82,8 +80,7 @@ var _ = Describe("Modifier", func() {
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-					Expect(err).ToNot(HaveOccurred())
+					er := m.EntityReaderFor(modifier.DBPath{"test"})
 					t = er.Type()
 				})
 				It("Should return Array", func() {
@@ -108,10 +105,7 @@ var _ = Describe("Modifier", func() {
 				BeforeEach(func() {
 					values = map[string]string{}
 					err = m.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
-						r, e := reader.Data()
-						if e != nil {
-							return e
-						}
+						r := reader.Data()
 						d, e := ioutil.ReadAll(r)
 						if e != nil {
 							return e
@@ -141,10 +135,7 @@ var _ = Describe("Modifier", func() {
 						BeforeEach(func() {
 							values = map[string]string{}
 							err = m.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
-								r, e := reader.Data()
-								if e != nil {
-									return e
-								}
+								r := reader.Data()
 								d, e := ioutil.ReadAll(r)
 								if e != nil {
 									return e
@@ -213,13 +204,8 @@ var _ = Describe("Modifier", func() {
 		Context("When I get the value that exists", func() {
 			var r io.Reader
 			BeforeEach(func() {
-				er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-				Expect(err).ToNot(HaveOccurred())
-				r, err = er.Data()
-			})
-
-			It("Should not return error", func() {
-				Expect(err).ToNot(HaveOccurred())
+				er := m.EntityReaderFor(modifier.DBPath{"test"})
+				r = er.Data()
 			})
 
 			It("Should return non-null reader", func() {
@@ -261,12 +247,8 @@ var _ = Describe("Modifier", func() {
 				Context("When I read the head of the array", func() {
 					var r io.Reader
 					BeforeEach(func() {
-						er, err := m.EntityReaderFor(modifier.DBPath{"l1", 0})
-						Expect(err).ToNot(HaveOccurred())
-						r, err = er.Data()
-					})
-					It("Should not return error", func() {
-						Expect(err).ToNot(HaveOccurred())
+						er := m.EntityReaderFor(modifier.DBPath{"l1", 0})
+						r = er.Data()
 					})
 					Context("When I read the value", func() {
 						var data []byte
@@ -294,12 +276,8 @@ var _ = Describe("Modifier", func() {
 					Context("When I read the head of the array", func() {
 						var r io.Reader
 						BeforeEach(func() {
-							er, err := m.EntityReaderFor(modifier.DBPath{"l1", 0})
-							Expect(err).ToNot(HaveOccurred())
-							r, err = er.Data()
-						})
-						It("Should not return error", func() {
-							Expect(err).ToNot(HaveOccurred())
+							er := m.EntityReaderFor(modifier.DBPath{"l1", 0})
+							r = er.Data()
 						})
 						Context("When I read the value", func() {
 							var data []byte
@@ -317,12 +295,8 @@ var _ = Describe("Modifier", func() {
 					Context("When I read the second value of the array", func() {
 						var r io.Reader
 						BeforeEach(func() {
-							er, err := m.EntityReaderFor(modifier.DBPath{"l1", 1})
-							Expect(err).ToNot(HaveOccurred())
-							r, err = er.Data()
-						})
-						It("Should not return error", func() {
-							Expect(err).ToNot(HaveOccurred())
+							er := m.EntityReaderFor(modifier.DBPath{"l1", 1})
+							r = er.Data()
 						})
 						Context("When I read the value", func() {
 							var data []byte

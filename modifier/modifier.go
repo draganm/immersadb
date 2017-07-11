@@ -252,8 +252,13 @@ func (m *Modifier) lookupAddress(path DBPath, from uint64) (uint64, error) {
 
 }
 
-func (m *Modifier) Data() (io.Reader, error) {
-	return NewDataReader(m.Store, m.RootAddress)
+func (m *Modifier) Data() io.Reader {
+	r, err := NewDataReader(m.Store, m.RootAddress)
+	if err != nil {
+		// TODO ErrorReader?
+		panic(err)
+	}
+	return r
 }
 
 func (m *Modifier) ForEachMapEntry(f func(key string, reader EntityReader) error) error {
@@ -324,12 +329,12 @@ func (m *Modifier) Size() uint64 {
 	return 0
 }
 
-func (m *Modifier) EntityReaderFor(path DBPath) (EntityReader, error) {
+func (m *Modifier) EntityReaderFor(path DBPath) EntityReader {
 	addr, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return New(m.Store, m.chunkSize, addr), nil
+	return New(m.Store, m.chunkSize, addr)
 }
 
 func (m *Modifier) Delete(path DBPath) error {

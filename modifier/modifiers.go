@@ -21,8 +21,8 @@ type EntityReader interface {
 	Size() uint64
 	Address() uint64
 	Type() EntityType
-	EntityReaderFor(path DBPath) (EntityReader, error)
-	Data() (io.Reader, error)
+	EntityReaderFor(path DBPath) EntityReader
+	Data() io.Reader
 	ForEachMapEntry(func(key string, reader EntityReader) error) error
 	Exists(path DBPath) bool
 	ForEachArrayElement(func(index uint64, reader EntityReader) error) error
