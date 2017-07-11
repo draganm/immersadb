@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
@@ -112,12 +113,12 @@ type Listener interface {
 }
 
 type listenerState struct {
-	matcher     modifier.DBPath
+	matcher     dbpath.Path
 	listener    Listener
 	latestState uint64
 }
 
-func (i *ImmersaDB) AddListener(matcher modifier.DBPath, f Listener) {
+func (i *ImmersaDB) AddListener(matcher dbpath.Path, f Listener) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -136,15 +137,15 @@ func (l listenerFuncHolder) OnChange(r modifier.EntityReader) {
 	l(r)
 }
 
-func (i *ImmersaDB) AddListenerFunc(matcher modifier.DBPath, f func(r modifier.EntityReader)) {
+func (i *ImmersaDB) AddListenerFunc(matcher dbpath.Path, f func(r modifier.EntityReader)) {
 	i.AddListener(matcher, listenerFuncHolder(f))
 }
 
-func (i *ImmersaDB) RemoveListenerFunc(matcher modifier.DBPath, f func(r modifier.EntityReader)) {
+func (i *ImmersaDB) RemoveListenerFunc(matcher dbpath.Path, f func(r modifier.EntityReader)) {
 	i.RemoveListener(matcher, listenerFuncHolder(f))
 }
 
-func (i *ImmersaDB) RemoveListener(matcher modifier.DBPath, f Listener) {
+func (i *ImmersaDB) RemoveListener(matcher dbpath.Path, f Listener) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -166,19 +167,14 @@ func (i *ImmersaDB) RemoveListener(matcher modifier.DBPath, f Listener) {
 
 func (ls *listenerState) checkForChange(i *ImmersaDB) {
 	i.readTransaction(func(r modifier.EntityReader) error {
-		var err error
-		re, err := r.EntityReaderFor(ls.matcher)
-		if err != nil {
-			return err
-		}
-		addr := re.Address()
-		if addr != ls.latestState {
-			sr, err := r.EntityReaderFor(ls.matcher)
-			if err != nil {
-				return err
+		if r.Exists(ls.matcher) {
+			re := r.EntityReaderFor(ls.matcher)
+			addr := re.Address()
+			if addr != ls.latestState {
+				sr := r.EntityReaderFor(ls.matcher)
+				ls.listener.OnChange(sr)
+				ls.latestState = addr
 			}
-			ls.listener.OnChange(sr)
-			ls.latestState = addr
 		}
 		return nil
 	})

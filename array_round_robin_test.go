@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/draganm/immersadb"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,7 +35,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 	Context("When I create an array", func() {
 		BeforeEach(func() {
 			err := i.Transaction(func(m modifier.EntityWriter) error {
-				return m.CreateArray(modifier.DBPath{"ar"})
+				return m.CreateArray(dbpath.Path{"ar"})
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -42,7 +43,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 			BeforeEach(func() {
 				for j := 0; j < 5; j++ {
 					err := i.Transaction(func(m modifier.EntityWriter) error {
-						return m.CreateData(modifier.DBPath{"ar", 0}, func(w io.Writer) error {
+						return m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
 							return msgpack.NewEncoder(w).Encode(j)
 						})
 					})
@@ -55,16 +56,10 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 				JustBeforeEach(func() {
 					elements = nil
 					err := i.ReadTransaction(func(er modifier.EntityReader) error {
-						ser, err := er.EntityReaderFor(modifier.DBPath{"ar"})
-						if err != nil {
-							return err
-						}
+						ser := er.EntityReaderFor(dbpath.Path{"ar"})
 						return ser.ForEachArrayElement(func(index uint64, reader modifier.EntityReader) error {
 							var el int
-							r, err := reader.Data()
-							if err != nil {
-								return err
-							}
+							r := reader.Data()
 							err = msgpack.NewDecoder(r).Decode(&el)
 							if err != nil {
 								return err
@@ -84,11 +79,11 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 					BeforeEach(func() {
 						err := i.Transaction(func(m modifier.EntityWriter) error {
 
-							err := m.CreateData(modifier.DBPath{"ar", 0}, func(w io.Writer) error {
+							err := m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
 								return msgpack.NewEncoder(w).Encode(5)
 							})
 
-							err = m.Delete(modifier.DBPath{"ar", 5})
+							err = m.Delete(dbpath.Path{"ar", 5})
 							if err != nil {
 								return err
 							}
@@ -104,10 +99,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 					It("Should have Size 4", func() {
 						var size uint64
 						err := i.ReadTransaction(func(er modifier.EntityReader) error {
-							ser, err := er.EntityReaderFor(modifier.DBPath{"ar"})
-							if err != nil {
-								return err
-							}
+							ser := er.EntityReaderFor(dbpath.Path{"ar"})
 							size = ser.Size()
 							return nil
 						})
@@ -119,7 +111,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 						BeforeEach(func() {
 							err := i.Transaction(func(m modifier.EntityWriter) error {
 
-								err := m.CreateData(modifier.DBPath{"ar", 0}, func(w io.Writer) error {
+								err := m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
 									return msgpack.NewEncoder(w).Encode(6)
 								})
 
@@ -127,7 +119,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 									return err
 								}
 
-								err = m.Delete(modifier.DBPath{"ar", 5})
+								err = m.Delete(dbpath.Path{"ar", 5})
 								if err != nil {
 									return err
 								}

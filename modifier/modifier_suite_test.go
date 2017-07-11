@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
@@ -38,7 +39,7 @@ var _ = Describe("Modifier", func() {
 		var t modifier.EntityType
 		Context("When the data value exists", func() {
 			BeforeEach(func() {
-				Expect(m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+				Expect(m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 					_, e := w.Write([]byte("test"))
 					return e
 				})).To(Succeed())
@@ -48,8 +49,7 @@ var _ = Describe("Modifier", func() {
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-					Expect(err).ToNot(HaveOccurred())
+					er := m.EntityReaderFor(dbpath.Path{"test"})
 					t = er.Type()
 				})
 				It("Should return Data", func() {
@@ -60,14 +60,13 @@ var _ = Describe("Modifier", func() {
 
 		Context("When the hash value exists", func() {
 			BeforeEach(func() {
-				Expect(m.CreateMap(modifier.DBPath{"test"})).To(Succeed())
+				Expect(m.CreateMap(dbpath.Path{"test"})).To(Succeed())
 				_, err = s.Append(chunk.NewCommitChunk(m.RootAddress))
 				Expect(err).ToNot(HaveOccurred())
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-					Expect(err).ToNot(HaveOccurred())
+					er := m.EntityReaderFor(dbpath.Path{"test"})
 					t = er.Type()
 				})
 				It("Should return Map", func() {
@@ -78,12 +77,11 @@ var _ = Describe("Modifier", func() {
 
 		Context("When the array value exists", func() {
 			BeforeEach(func() {
-				Expect(m.CreateArray(modifier.DBPath{"test"})).To(Succeed())
+				Expect(m.CreateArray(dbpath.Path{"test"})).To(Succeed())
 			})
 			Context("When I get the type", func() {
 				BeforeEach(func() {
-					er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-					Expect(err).ToNot(HaveOccurred())
+					er := m.EntityReaderFor(dbpath.Path{"test"})
 					t = er.Type()
 				})
 				It("Should return Array", func() {
@@ -97,7 +95,7 @@ var _ = Describe("Modifier", func() {
 	Describe("ForEachMapEntry", func() {
 		Context("When there is one value", func() {
 			BeforeEach(func() {
-				Expect(m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+				Expect(m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 					_, e := w.Write([]byte("testValue"))
 					return e
 				})).To(Succeed())
@@ -108,10 +106,7 @@ var _ = Describe("Modifier", func() {
 				BeforeEach(func() {
 					values = map[string]string{}
 					err = m.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
-						r, e := reader.Data()
-						if e != nil {
-							return e
-						}
+						r := reader.Data()
 						d, e := ioutil.ReadAll(r)
 						if e != nil {
 							return e
@@ -131,7 +126,7 @@ var _ = Describe("Modifier", func() {
 
 				Context("When I add another value", func() {
 					BeforeEach(func() {
-						Expect(m.CreateData(modifier.DBPath{"test2"}, func(w io.Writer) error {
+						Expect(m.CreateData(dbpath.Path{"test2"}, func(w io.Writer) error {
 							_, e := w.Write([]byte("testValue2"))
 							return e
 						})).To(Succeed())
@@ -141,10 +136,7 @@ var _ = Describe("Modifier", func() {
 						BeforeEach(func() {
 							values = map[string]string{}
 							err = m.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
-								r, e := reader.Data()
-								if e != nil {
-									return e
-								}
+								r := reader.Data()
 								d, e := ioutil.ReadAll(r)
 								if e != nil {
 									return e
@@ -176,7 +168,7 @@ var _ = Describe("Modifier", func() {
 			Context("When I check for existence", func() {
 				var exists bool
 				BeforeEach(func() {
-					exists = m.Exists(modifier.DBPath{"test"})
+					exists = m.Exists(dbpath.Path{"test"})
 				})
 				It("Should return false", func() {
 					Expect(exists).To(BeFalse())
@@ -185,7 +177,7 @@ var _ = Describe("Modifier", func() {
 		})
 		Context("When the value exists", func() {
 			BeforeEach(func() {
-				Expect(m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+				Expect(m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 					_, e := w.Write([]byte("test"))
 					return e
 				})).To(Succeed())
@@ -193,7 +185,7 @@ var _ = Describe("Modifier", func() {
 			Context("When I check for existence", func() {
 				var exists bool
 				BeforeEach(func() {
-					exists = m.Exists(modifier.DBPath{"test"})
+					exists = m.Exists(dbpath.Path{"test"})
 				})
 				It("Should return true", func() {
 					Expect(exists).To(BeTrue())
@@ -204,7 +196,7 @@ var _ = Describe("Modifier", func() {
 
 	Describe("GetData", func() {
 		BeforeEach(func() {
-			Expect(m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+			Expect(m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 				_, e := w.Write([]byte("test"))
 				return e
 			})).To(Succeed())
@@ -213,13 +205,8 @@ var _ = Describe("Modifier", func() {
 		Context("When I get the value that exists", func() {
 			var r io.Reader
 			BeforeEach(func() {
-				er, err := m.EntityReaderFor(modifier.DBPath{"test"})
-				Expect(err).ToNot(HaveOccurred())
-				r, err = er.Data()
-			})
-
-			It("Should not return error", func() {
-				Expect(err).ToNot(HaveOccurred())
+				er := m.EntityReaderFor(dbpath.Path{"test"})
+				r = er.Data()
 			})
 
 			It("Should return non-null reader", func() {
@@ -246,11 +233,11 @@ var _ = Describe("Modifier", func() {
 
 		Context("When there is a array", func() {
 			BeforeEach(func() {
-				Expect(m.CreateArray(modifier.DBPath{"l1"})).To(Succeed())
+				Expect(m.CreateArray(dbpath.Path{"l1"})).To(Succeed())
 			})
 			Context("When I append a value to the array head", func() {
 				BeforeEach(func() {
-					err = m.CreateData(modifier.DBPath{"l1", 0}, func(w io.Writer) error {
+					err = m.CreateData(dbpath.Path{"l1", 0}, func(w io.Writer) error {
 						_, e := w.Write([]byte("test-test-test"))
 						return e
 					})
@@ -261,12 +248,8 @@ var _ = Describe("Modifier", func() {
 				Context("When I read the head of the array", func() {
 					var r io.Reader
 					BeforeEach(func() {
-						er, err := m.EntityReaderFor(modifier.DBPath{"l1", 0})
-						Expect(err).ToNot(HaveOccurred())
-						r, err = er.Data()
-					})
-					It("Should not return error", func() {
-						Expect(err).ToNot(HaveOccurred())
+						er := m.EntityReaderFor(dbpath.Path{"l1", 0})
+						r = er.Data()
 					})
 					Context("When I read the value", func() {
 						var data []byte
@@ -283,7 +266,7 @@ var _ = Describe("Modifier", func() {
 				})
 				Context("When I append another value to the array head", func() {
 					BeforeEach(func() {
-						err = m.CreateData(modifier.DBPath{"l1", 0}, func(w io.Writer) error {
+						err = m.CreateData(dbpath.Path{"l1", 0}, func(w io.Writer) error {
 							_, e := w.Write([]byte("test-test-test2"))
 							return e
 						})
@@ -294,12 +277,8 @@ var _ = Describe("Modifier", func() {
 					Context("When I read the head of the array", func() {
 						var r io.Reader
 						BeforeEach(func() {
-							er, err := m.EntityReaderFor(modifier.DBPath{"l1", 0})
-							Expect(err).ToNot(HaveOccurred())
-							r, err = er.Data()
-						})
-						It("Should not return error", func() {
-							Expect(err).ToNot(HaveOccurred())
+							er := m.EntityReaderFor(dbpath.Path{"l1", 0})
+							r = er.Data()
 						})
 						Context("When I read the value", func() {
 							var data []byte
@@ -317,12 +296,8 @@ var _ = Describe("Modifier", func() {
 					Context("When I read the second value of the array", func() {
 						var r io.Reader
 						BeforeEach(func() {
-							er, err := m.EntityReaderFor(modifier.DBPath{"l1", 1})
-							Expect(err).ToNot(HaveOccurred())
-							r, err = er.Data()
-						})
-						It("Should not return error", func() {
-							Expect(err).ToNot(HaveOccurred())
+							er := m.EntityReaderFor(dbpath.Path{"l1", 1})
+							r = er.Data()
 						})
 						Context("When I read the value", func() {
 							var data []byte
@@ -343,7 +318,7 @@ var _ = Describe("Modifier", func() {
 
 		Context("When the path has only one string entry", func() {
 			BeforeEach(func() {
-				err = m.CreateData(modifier.DBPath{"test"}, func(w io.Writer) error {
+				err = m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
 					_, e := w.Write([]byte{1, 2, 3, 4})
 					return e
 				})
@@ -362,7 +337,7 @@ var _ = Describe("Modifier", func() {
 	Describe("CreateArray", func() {
 		Context("When the path has only one string entry", func() {
 			BeforeEach(func() {
-				err = m.CreateArray(modifier.DBPath{"test"})
+				err = m.CreateArray(dbpath.Path{"test"})
 			})
 
 			It("Shoud not return an error", func() {
@@ -376,7 +351,7 @@ var _ = Describe("Modifier", func() {
 
 		Context("When the path has only one string entry", func() {
 			BeforeEach(func() {
-				err = m.CreateMap(modifier.DBPath{"test"})
+				err = m.CreateMap(dbpath.Path{"test"})
 			})
 
 			It("Shoud not return an error", func() {
@@ -385,7 +360,7 @@ var _ = Describe("Modifier", func() {
 
 			Context("When I create a nested hash", func() {
 				BeforeEach(func() {
-					err = m.CreateMap(modifier.DBPath{"test", "test2"})
+					err = m.CreateMap(dbpath.Path{"test", "test2"})
 				})
 				It("Should not return error", func() {
 					Expect(err).ToNot(HaveOccurred())
@@ -394,7 +369,7 @@ var _ = Describe("Modifier", func() {
 
 			Context("When I create another at the root level", func() {
 				BeforeEach(func() {
-					err = m.CreateMap(modifier.DBPath{"test2"})
+					err = m.CreateMap(dbpath.Path{"test2"})
 				})
 
 				It("Shoud not return an error", func() {

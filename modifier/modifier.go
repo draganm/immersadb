@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
 )
@@ -33,7 +34,7 @@ func (m *Modifier) rootType() chunk.ChunkType {
 	return chunk.Type(m.Chunk(m.RootAddress))
 }
 
-func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
+func (m *Modifier) modify(path dbpath.Path, f func(*Modifier) error) error {
 	if len(path) == 0 {
 		return f(m)
 	}
@@ -87,7 +88,7 @@ func (m *Modifier) modify(path DBPath, f func(*Modifier) error) error {
 
 }
 
-func (m *Modifier) CreateMap(path DBPath) error {
+func (m *Modifier) CreateMap(path dbpath.Path) error {
 
 	last := path[len(path)-1]
 
@@ -135,7 +136,7 @@ func (m *Modifier) CreateMap(path DBPath) error {
 
 }
 
-func (m *Modifier) CreateArray(path DBPath) error {
+func (m *Modifier) CreateArray(path dbpath.Path) error {
 
 	last := path[len(path)-1]
 
@@ -163,7 +164,7 @@ func (m *Modifier) CreateArray(path DBPath) error {
 
 }
 
-func (m *Modifier) CreateData(path DBPath, f func(io.Writer) error) error {
+func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 
 	last := path[len(path)-1]
 
@@ -221,7 +222,7 @@ func (m *Modifier) CreateData(path DBPath, f func(io.Writer) error) error {
 
 }
 
-func (m *Modifier) lookupAddress(path DBPath, from uint64) (uint64, error) {
+func (m *Modifier) lookupAddress(path dbpath.Path, from uint64) (uint64, error) {
 
 	for len(path) > 0 {
 		switch path[0].(type) {
@@ -252,8 +253,13 @@ func (m *Modifier) lookupAddress(path DBPath, from uint64) (uint64, error) {
 
 }
 
-func (m *Modifier) Data() (io.Reader, error) {
-	return NewDataReader(m.Store, m.RootAddress)
+func (m *Modifier) Data() io.Reader {
+	r, err := NewDataReader(m.Store, m.RootAddress)
+	if err != nil {
+		// TODO ErrorReader?
+		panic(err)
+	}
+	return r
 }
 
 func (m *Modifier) ForEachMapEntry(f func(key string, reader EntityReader) error) error {
@@ -269,7 +275,7 @@ func (m *Modifier) ForEachArrayElement(f func(index uint64, reader EntityReader)
 	})
 }
 
-func (m *Modifier) Exists(path DBPath) bool {
+func (m *Modifier) Exists(path dbpath.Path) bool {
 	_, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
 		return false
@@ -298,7 +304,7 @@ func (m *Modifier) Address() uint64 {
 	return m.RootAddress
 }
 
-func (m *Modifier) HasPath(path DBPath) bool {
+func (m *Modifier) HasPath(path dbpath.Path) bool {
 	_, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
 		return false
@@ -324,15 +330,15 @@ func (m *Modifier) Size() uint64 {
 	return 0
 }
 
-func (m *Modifier) EntityReaderFor(path DBPath) (EntityReader, error) {
+func (m *Modifier) EntityReaderFor(path dbpath.Path) EntityReader {
 	addr, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return New(m.Store, m.chunkSize, addr), nil
+	return New(m.Store, m.chunkSize, addr)
 }
 
-func (m *Modifier) Delete(path DBPath) error {
+func (m *Modifier) Delete(path dbpath.Path) error {
 	lastElement := path[len(path)-1]
 	return m.modify(path[:len(path)-1], func(mm *Modifier) error {
 		switch lastElement.(type) {

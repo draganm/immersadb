@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"github.com/draganm/immersadb/chunk"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
@@ -60,7 +61,7 @@ var _ = Describe("Copy", func() {
 		Context("When I add a new value to the source", func() {
 			BeforeEach(func() {
 				m := modifier.New(source, 1024, chunk.LastCommitRootHashAddress(source))
-				err = m.CreateMap(modifier.DBPath{"test"})
+				err = m.CreateMap(dbpath.Path{"test"})
 				Expect(err).ToNot(HaveOccurred())
 				_, err = source.Append(chunk.NewCommitChunk(m.RootAddress))
 				Expect(err).ToNot(HaveOccurred())
@@ -95,7 +96,7 @@ var _ = Describe("Copy", func() {
 			Context("When I add another level of hash to the source", func() {
 				BeforeEach(func() {
 					m := modifier.New(source, 1024, chunk.LastCommitRootHashAddress(source))
-					err = m.CreateMap(modifier.DBPath{"test", "test2"})
+					err = m.CreateMap(dbpath.Path{"test", "test2"})
 					Expect(err).ToNot(HaveOccurred())
 					_, err = source.Append(chunk.NewCommitChunk(m.RootAddress))
 					Expect(err).ToNot(HaveOccurred())
@@ -136,7 +137,7 @@ var _ = Describe("Copy", func() {
 				Context("When I add another hash to the parallel level", func() {
 					BeforeEach(func() {
 						m := modifier.New(source, 1024, chunk.LastCommitRootHashAddress(source))
-						err = m.CreateMap(modifier.DBPath{"test", "test3"})
+						err = m.CreateMap(dbpath.Path{"test", "test3"})
 						Expect(err).ToNot(HaveOccurred())
 						_, err = source.Append(chunk.NewCommitChunk(m.RootAddress))
 						Expect(err).ToNot(HaveOccurred())
