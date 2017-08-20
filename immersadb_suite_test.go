@@ -121,14 +121,17 @@ var _ = Describe("ImmersaDB", func() {
 	Describe("AddListenerFunc", func() {
 
 		var called bool
+		var reader modifier.EntityReader
 		JustBeforeEach(func() {
 			i.AddListenerFunc(dbpath.Path{"test"}, func(r modifier.EntityReader) {
 				called = true
+				reader = r
 			})
 		})
 		Context("When the value does not exist", func() {
-			It("Should not call the listener", func() {
-				Expect(called).To(BeFalse())
+			It("Should call the listener with nil reader", func() {
+				Expect(called).To(BeTrue())
+				Expect(reader).To(BeNil())
 			})
 		})
 		Context("When the value exists", func() {

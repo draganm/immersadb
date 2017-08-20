@@ -7,6 +7,7 @@ import (
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/gc"
+	"github.com/draganm/immersadb/graph"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
@@ -47,6 +48,10 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 		store:       s,
 		segmentSize: segmentSize,
 	}, nil
+}
+
+func (i *ImmersaDB) DumpGraph() {
+	graph.DumpGraph(i.store, i.store.NextChunkAddress()-chunk.CommitChunkSize)
 }
 
 func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
@@ -175,7 +180,9 @@ func (ls *listenerState) checkForChange(i *ImmersaDB) {
 				ls.listener.OnChange(sr)
 				ls.latestState = addr
 			}
+			return nil
 		}
+		ls.listener.OnChange(nil)
 		return nil
 	})
 
