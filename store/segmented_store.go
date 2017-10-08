@@ -54,6 +54,7 @@ func NewSegmentedStore(dir string, maxSegmentSize int) (*SegmentedStore, error) 
 		pth := filepath.Join(dir, fn)
 		fs, err := NewFileStore(pth)
 		if err != nil {
+
 			return nil, err
 		}
 

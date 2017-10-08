@@ -1,6 +1,7 @@
 package immersadb
 
 import (
+	"log"
 	"reflect"
 	"sync"
 
@@ -28,6 +29,8 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 
 	s, err := store.NewSegmentedStore(path, segmentSize)
 	if err != nil {
+		log.Println(err)
+
 		return nil, err
 	}
 
@@ -154,6 +157,8 @@ func (i *ImmersaDB) RemoveListener(matcher dbpath.Path, f Listener) {
 	i.Lock()
 	defer i.Unlock()
 
+	log.Println("Listeners before", i.listeners)
+
 	foundIdx := -1
 	v1 := reflect.ValueOf(f)
 
@@ -167,7 +172,12 @@ func (i *ImmersaDB) RemoveListener(matcher dbpath.Path, f Listener) {
 
 	if foundIdx >= 0 {
 		i.listeners = append(i.listeners[:foundIdx], i.listeners[foundIdx+1:]...)
+	} else {
+		log.Panic("Listener not found", matcher, f)
 	}
+
+	log.Println("Listeners after", i.listeners)
+
 }
 
 func (ls *listenerState) checkForChange(i *ImmersaDB) {

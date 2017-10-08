@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/binary"
+	"log"
 	"os"
 	"syscall"
 )
@@ -12,7 +13,7 @@ type FileStore struct {
 	file *os.File
 }
 
-const maxSegmentSize = 1024*1024*1024*2 - 1
+const maxSegmentSize = 10 * 1024 * 1024 * 2
 
 // NewFileStore creates a new instance of memory mapped store.
 // If the file can't be open, it returns error.
@@ -43,6 +44,8 @@ func NewFileStore(file string) (*FileStore, error) {
 
 	data, err := syscall.Mmap(int(f.Fd()), 0, maxSegmentSize, syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
+		log.Println(err)
+
 		return nil, err
 	}
 

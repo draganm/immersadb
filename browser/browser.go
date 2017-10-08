@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/draganm/immersadb"
+	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier"
 )
 
@@ -27,7 +28,7 @@ type DirEntry struct {
 	Path string
 }
 
-func breadcrumbsForPath(p modifier.DBPath) Breadcrumbs {
+func breadcrumbsForPath(p dbpath.Path) Breadcrumbs {
 	b := Breadcrumbs{}
 	for i, e := range p {
 		b = append(b, DirEntry{
@@ -49,7 +50,7 @@ func pathElementToString(p interface{}) string {
 	}
 }
 
-func pathToString(pth modifier.DBPath) string {
+func pathToString(pth dbpath.Path) string {
 	parts := []string{}
 	for _, p := range pth {
 		parts = append(parts, pathElementToString(p))
@@ -64,17 +65,14 @@ func Browser(addr string, db *immersadb.ImmersaDB) *http.Server {
 
 		err := db.ReadTransaction(func(r modifier.EntityReader) error {
 			parts := strings.Split(name, "/")
-			path := modifier.DBPath{}
+			path := dbpath.Path{}
 			for _, p := range parts {
 				if p == "" {
 					continue
 				}
-				sr, err := r.EntityReaderFor(path)
-				if err != nil {
-					return err
-				}
+				sr := r.EntityReaderFor(path)
 				switch sr.Type() {
-				case modifier.Hash:
+				case modifier.Map:
 					path = append(path, p)
 				case modifier.Array:
 					idx, err := strconv.ParseUint(p, 10, 64)
@@ -87,23 +85,17 @@ func Browser(addr string, db *immersadb.ImmersaDB) *http.Server {
 				}
 			}
 
-			er, err := r.EntityReaderFor(path)
-			if err != nil {
-				return err
-			}
+			er := r.EntityReaderFor(path)
 			switch er.Type() {
 			case modifier.Data:
 				var r io.Reader
-				r, err = er.Data()
-				if err != nil {
-					return err
-				}
-				_, err = io.Copy(w, r)
+				r = er.Data()
+				_, err := io.Copy(w, r)
 				return err
 			case modifier.Array:
 				w.Header().Set("Content-Type", "text/html")
 
-				err = templates.ExecuteTemplate(w, "Head", breadcrumbsForPath(path))
+				err := templates.ExecuteTemplate(w, "Head", breadcrumbsForPath(path))
 				if err != nil {
 					return nil
 				}
@@ -120,15 +112,15 @@ func Browser(addr string, db *immersadb.ImmersaDB) *http.Server {
 				}
 
 				return nil
-			case modifier.Hash:
+			case modifier.Map:
 				w.Header().Set("Content-Type", "text/html")
 
-				err = templates.ExecuteTemplate(w, "Head", breadcrumbsForPath(path))
+				err := templates.ExecuteTemplate(w, "Head", breadcrumbsForPath(path))
 				if err != nil {
 					return nil
 				}
 
-				err = er.ForEachHashEntry(func(key string, reader modifier.EntityReader) error {
+				err = er.ForEachMapEntry(func(key string, reader modifier.EntityReader) error {
 					return templates.ExecuteTemplate(w, "DirEntry", DirEntry{Name: key, Path: pathToString(append(path, key))})
 				})
 
