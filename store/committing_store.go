@@ -8,6 +8,10 @@ type CommitingStore struct {
 	storeEndAddress   uint64
 }
 
+func (s *CommitingStore) FirstChunkAddress() uint64 {
+	return s.store.FirstChunkAddress()
+}
+
 func NewCommitingStore(store BulkAppendStore) *CommitingStore {
 	storeStartAddress := store.NextChunkAddress()
 

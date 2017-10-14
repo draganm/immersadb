@@ -7,6 +7,7 @@ type Store interface {
 	Chunk(addr uint64) []byte
 	BytesInStore() uint64
 	NextChunkAddress() uint64
+	FirstChunkAddress() uint64
 	Close() error
 }
 

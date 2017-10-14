@@ -8,6 +8,7 @@ import (
 
 	"github.com/draganm/immersadb"
 	"github.com/draganm/immersadb/browser"
+	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/store"
 
@@ -32,6 +33,27 @@ func main() {
 					}
 					server := browser.Browser(":8082", imdb)
 					return server.ListenAndServe()
+				},
+			},
+			&cli.Command{
+				Name: "dump-segments",
+				Action: func(c *cli.Context) error {
+					dirName := c.Args().First()
+					if len(dirName) == 0 {
+						return errors.New("File name not provided")
+					}
+					ss, err := store.NewSegmentedStore(dirName, 10*1024*1024)
+					if err != nil {
+						return err
+					}
+
+					for addr := ss.FirstChunkAddress(); addr < ss.NextChunkAddress(); {
+						c := ss.Chunk(addr)
+						addr += 2 + uint64(len(c))
+
+						fmt.Printf("%x: %d\n", addr, chunk.Type(c))
+					}
+					return nil
 				},
 			},
 			&cli.Command{

@@ -80,6 +80,13 @@ func NewSegmentedStore(dir string, maxSegmentSize int) (*SegmentedStore, error) 
 	}, nil
 }
 
+func (ss *SegmentedStore) FirstChunkAddress() uint64 {
+	if len(ss.fullSegments) > 0 {
+		return ss.fullSegments[0].start
+	}
+	return ss.currentSegment.start
+}
+
 func (ss *SegmentedStore) DropBefore(addr uint64) error {
 	for len(ss.fullSegments) > 0 && ss.fullSegments[0].endAddress() <= addr {
 		seg := ss.fullSegments[0]

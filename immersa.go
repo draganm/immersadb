@@ -1,6 +1,7 @@
 package immersadb
 
 import (
+	"errors"
 	"log"
 	"reflect"
 	"sync"
@@ -15,6 +16,8 @@ import (
 )
 
 const chunkSize = 32 * 1024
+
+var ErrCouldNotRecover = errors.New("Could not recover: Can't find any commit chunks!")
 
 // ImmersaDB represents an instance of the database.
 type ImmersaDB struct {
@@ -41,6 +44,38 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 		}
 
 		_, err = s.Append(chunk.NewCommitChunk(addr))
+		if err != nil {
+			return nil, err
+		}
+
+	}
+
+	commitAddress := s.NextChunkAddress() - chunk.CommitChunkSize
+
+	invalidCommitChunk := s.Chunk(commitAddress) == nil
+
+	if invalidCommitChunk {
+		lastSeenCommit := s.NextChunkAddress()
+
+		addr := s.FirstChunkAddress()
+		c := s.Chunk(addr)
+
+		for ; c != nil; addr += uint64(len(c)) {
+			c = s.Chunk(addr)
+			t := chunk.Type(c)
+			if t == chunk.CommitType {
+				lastSeenCommit = addr
+			}
+		}
+
+		if lastSeenCommit == s.NextChunkAddress() {
+			return nil, ErrCouldNotRecover
+		}
+
+		c = s.Chunk(lastSeenCommit)
+
+		_, err = s.Append(c)
+
 		if err != nil {
 			return nil, err
 		}

@@ -2,7 +2,6 @@ package store
 
 import (
 	"encoding/binary"
-	"log"
 	"os"
 	"syscall"
 )
@@ -44,8 +43,6 @@ func NewFileStore(file string) (*FileStore, error) {
 
 	data, err := syscall.Mmap(int(f.Fd()), 0, maxSegmentSize, syscall.PROT_READ, syscall.MAP_SHARED)
 	if err != nil {
-		log.Println(err)
-
 		return nil, err
 	}
 
@@ -72,6 +69,10 @@ func (s *FileStore) Append(data []byte) (uint64, error) {
 	s.last += uint64(len(toWrite))
 
 	return prev, nil
+}
+
+func (s *FileStore) FirstChunkAddress() uint64 {
+	return 0
 }
 
 // Close unmaps the mmaped data and closes the file.

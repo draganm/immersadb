@@ -10,6 +10,10 @@ type SliceStore struct {
 	last uint64
 }
 
+func (s *SliceStore) FirstChunkAddress() uint64 {
+	return 0
+}
+
 func (s *SliceStore) NextChunkAddress() uint64 {
 	return s.last
 }
@@ -21,8 +25,11 @@ func (s *SliceStore) Chunk(addr uint64) []byte {
 		return nil
 	}
 
-	len := int(binary.BigEndian.Uint16(s.data[addr:])) & 0xffff
-	return s.data[int(addr)+2 : int(addr)+len+2]
+	len := uint64(binary.BigEndian.Uint16(s.data[addr:]))
+	if addr+len > s.NextChunkAddress() {
+		return nil
+	}
+	return s.data[addr+2 : addr+len+2]
 }
 
 // BytesInStore returns the number of bytes that store has.
