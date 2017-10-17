@@ -57,22 +57,20 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 	if invalidCommitChunk {
 		lastSeenCommit := s.NextChunkAddress()
 
-		addr := s.FirstChunkAddress()
-		c := s.Chunk(addr)
-
-		for ; c != nil; addr += uint64(len(c)) {
-			c = s.Chunk(addr)
+		for addr := s.FirstChunkAddress(); addr < s.NextChunkAddress(); {
+			c := s.Chunk(addr)
 			t := chunk.Type(c)
 			if t == chunk.CommitType {
 				lastSeenCommit = addr
 			}
+			addr += uint64(len(c) + 2)
 		}
 
 		if lastSeenCommit == s.NextChunkAddress() {
 			return nil, ErrCouldNotRecover
 		}
 
-		c = s.Chunk(lastSeenCommit)
+		c := s.Chunk(lastSeenCommit)
 
 		_, err = s.Append(c)
 
