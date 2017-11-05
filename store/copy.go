@@ -1,21 +1,21 @@
-package gc
+package store
 
 import (
 	"crypto/sha256"
 	"errors"
+	"log"
 
 	"github.com/draganm/immersadb/chunk"
-	"github.com/draganm/immersadb/store"
 )
 
 // Copy copies content of one storage to the other in order to remove unused chunks.
 // It will also de-dup leaves with the same content.
-func Copy(source, destination store.Store) error {
+func Copy(source, destination Store) error {
 	_, err := deepCopy(source.NextChunkAddress()-chunk.CommitChunkSize, source.NextChunkAddress(), map[uint64]uint64{}, map[string]uint64{}, source, destination)
 	return err
 }
 
-func deepCopy(addr, beforeAddr uint64, addrMap map[uint64]uint64, contentMap map[string]uint64, source, destination store.Store) (bool, error) {
+func deepCopy(addr, beforeAddr uint64, addrMap map[uint64]uint64, contentMap map[string]uint64, source, destination Store) (bool, error) {
 
 	ch := source.Chunk(addr)
 	t, refs, data := chunk.Parts(ch)
@@ -31,6 +31,7 @@ func deepCopy(addr, beforeAddr uint64, addrMap map[uint64]uint64, contentMap map
 		}
 
 		if addr >= beforeAddr {
+			log.Println("++++++++FOUND", addr)
 			addrMap[addr] = addr
 			contentMap[string(s[:])] = addr
 			return false, nil

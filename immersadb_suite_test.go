@@ -28,7 +28,7 @@ var _ = Describe("ImmersaDB", func() {
 	BeforeEach(func() {
 		dir, err = ioutil.TempDir("", "")
 		Expect(err).ToNot(HaveOccurred())
-		i, err = immersadb.New(dir, 8*1024)
+		i, err = immersadb.New(dir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -36,40 +36,6 @@ var _ = Describe("ImmersaDB", func() {
 		if dir != "" {
 			Expect(os.RemoveAll(dir)).To(Succeed())
 		}
-	})
-
-	Describe("GC", func() {
-		Context("When I create enough garbage to remove the first segment", func() {
-			BeforeEach(func() {
-				for j := 0; j < 180; j++ {
-					err := i.Transaction(func(m modifier.EntityWriter) error {
-						return m.CreateMap(dbpath.Path{"test"})
-					})
-					Expect(err).ToNot(HaveOccurred())
-					err = i.Transaction(func(m modifier.EntityWriter) error {
-						return m.Delete(dbpath.Path{"test"})
-					})
-					Expect(err).ToNot(HaveOccurred())
-				}
-			})
-
-			It("should have two segments in the db dir", func() {
-				entries, err := ioutil.ReadDir(dir)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(entries)).To(Equal(2))
-			})
-
-			Context("When I calll GC", func() {
-				BeforeEach(func() {
-					Expect(i.GC()).To(Succeed())
-				})
-				It("Should remove the first segment", func() {
-					entries, err := ioutil.ReadDir(dir)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(entries)).To(Equal(1))
-				})
-			})
-		})
 	})
 
 	Describe("Transaction", func() {

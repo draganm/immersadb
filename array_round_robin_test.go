@@ -22,7 +22,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 	BeforeEach(func() {
 		dir, err = ioutil.TempDir("", "")
 		Expect(err).ToNot(HaveOccurred())
-		i, err = immersadb.New(dir, 128*1024)
+		i, err = immersadb.New(dir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

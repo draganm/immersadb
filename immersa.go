@@ -8,7 +8,6 @@ import (
 
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/dbpath"
-	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/graph"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
@@ -22,15 +21,14 @@ var ErrCouldNotRecover = errors.New("Could not recover: Can't find any commit ch
 // ImmersaDB represents an instance of the database.
 type ImmersaDB struct {
 	sync.RWMutex
-	store       *store.SegmentedStore
-	segmentSize int
-	listeners   []*listenerState
+	store     *store.GCStore
+	listeners []*listenerState
 }
 
 // New creates a new instance of ImmersaDB.
-func New(path string, segmentSize int) (*ImmersaDB, error) {
+func New(path string) (*ImmersaDB, error) {
 
-	s, err := store.NewSegmentedStore(path, segmentSize)
+	s, err := store.NewGCStore(path)
 	if err != nil {
 		log.Println(err)
 
@@ -81,8 +79,7 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 	}
 
 	return &ImmersaDB{
-		store:       s,
-		segmentSize: segmentSize,
+		store: s,
 	}, nil
 }
 
@@ -104,9 +101,18 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 		return err
 	}
 
-	cs.Append(chunk.NewCommitChunk(m.RootAddress))
+	_, err = cs.Append(chunk.NewCommitChunk(m.RootAddress))
+	if err != nil {
+		return err
+	}
 
 	err = cs.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = i.store.GC()
+
 	if err != nil {
 		return err
 	}
@@ -121,26 +127,6 @@ func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
 	return i.readTransaction(t)
-}
-
-func (i *ImmersaDB) GC() error {
-	i.Lock()
-	defer i.Unlock()
-
-	realSize := gc.Size(i.store)
-	beg := i.store.NextChunkAddress() - realSize
-
-	err := gc.Evacuate(i.store, beg)
-	if err != nil {
-		return err
-	}
-	err = i.store.DropBefore(beg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
 }
 
 func (i *ImmersaDB) readTransaction(t func(modifier.EntityReader) error) error {

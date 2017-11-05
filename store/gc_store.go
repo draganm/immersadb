@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -14,6 +15,8 @@ import (
 type GCStore struct {
 	start uint64
 	*FileStore
+	fileName string
+	dir      string
 }
 
 var segmentFilePattern = regexp.MustCompile(`^([a-fA-F0-9]{16}).seg$`)
@@ -61,7 +64,7 @@ func NewGCStore(dir string) (*GCStore, error) {
 		return nil, err
 	}
 
-	return &GCStore{start, s}, nil
+	return &GCStore{start, s, fileName, dir}, nil
 
 }
 
@@ -86,5 +89,41 @@ func (s *GCStore) Chunk(addr uint64) []byte {
 }
 
 func (s *GCStore) GC() error {
+
+	dataSize := Size(s)
+	totalSize := s.BytesInStore()
+
+	if totalSize > uint64(float64(dataSize)*1.5) {
+		newStart := s.NextChunkAddress()
+		fileName := filepath.Join(s.dir, fmt.Sprintf("%016x.seg", newStart))
+
+		newFileStore, err := NewFileStore(fileName)
+		if err != nil {
+			return err
+		}
+
+		newStore := &GCStore{newStart, newFileStore, fileName, s.dir}
+
+		err = Copy(s, newStore)
+		if err != nil {
+			return err
+		}
+
+		err = s.FileStore.Close()
+		if err != nil {
+			return err
+		}
+
+		err = os.Remove(fileName)
+		if err != nil {
+			return err
+		}
+
+		s.start = newStart
+		s.FileStore = newFileStore
+		s.fileName = fileName
+
+	}
+
 	return nil
 }
