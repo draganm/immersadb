@@ -32,7 +32,7 @@ var _ = Describe("Modifier", func() {
 
 		_, err = s.Append(chunk.NewCommitChunk(0))
 		Expect(err).ToNot(HaveOccurred())
-		m = modifier.New(s, 8192, chunk.LastCommitRootHashAddress(s))
+		m = modifier.New(s, 8192, store.LastCommitRootHashAddress(s))
 	})
 
 	Describe("Type", func() {
