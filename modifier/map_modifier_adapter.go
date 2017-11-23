@@ -67,7 +67,8 @@ func (m *MapModifierAdapter) ForEachAfter(key string, f func(index uint64, t Ent
 }
 
 func (m *MapModifierAdapter) HasKey(key string) bool {
-	return false
+	newPath := m.path.Append(key)
+	return m.m.Exists(newPath)
 }
 
 func (m *MapModifierAdapter) Type(key string) EntityType {
