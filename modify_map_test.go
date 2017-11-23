@@ -29,6 +29,61 @@ var _ = Describe("Modify Map", func() {
 		}
 	})
 
+	Describe("ForEach", func() {
+
+		type KeyType struct {
+			Key  string
+			Type modifier.EntityType
+		}
+		var keys []KeyType
+
+		JustBeforeEach(func() {
+			keys = nil
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.ForEach(func(key string, t modifier.EntityType) error {
+					keys = append(keys, KeyType{key, t})
+					return nil
+				})
+			})).To(Succeed())
+		})
+
+		Context("When map is empty", func() {
+			It("Should not be called", func() {
+				Expect(keys).To(BeNil())
+			})
+		})
+
+		Context("When map has one element", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+			It("should iterate over that key", func() {
+				Expect(keys).To(Equal([]KeyType{{Key: "test", Type: modifier.Map}}))
+			})
+		})
+
+		Context("When map has two elements", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					err := m.CreateMap("test", nil)
+					if err != nil {
+						return err
+					}
+					return m.CreateArray("test1", nil)
+				})).To(Succeed())
+			})
+			It("should iterate over both keys", func() {
+				Expect(keys).To(Equal([]KeyType{
+					{Key: "test", Type: modifier.Map},
+					{Key: "test1", Type: modifier.Array},
+				}))
+			})
+		})
+
+	})
+
 	Describe("HasKey", func() {
 		var hasKey bool
 
@@ -58,51 +113,5 @@ var _ = Describe("Modify Map", func() {
 		})
 
 	})
-
-	// Describe("Transaction", func() {
-	// 	Context("When data value is created", func() {
-	// 		BeforeEach(func() {
-	// 			err = i.Transaction(func(m modifier.EntityWriter) error {
-	// 				return m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
-	// 					_, e := w.Write([]byte("test"))
-	// 					return e
-	// 				})
-	// 			})
-	// 		})
-	// 		It("Should not return error", func() {
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 		})
-	//
-	// 		Context("When I add a listener for that value", func() {
-	// 			var data []byte
-	// 			BeforeEach(func() {
-	// 				i.AddListenerFunc(dbpath.Path{"test"}, func(r modifier.EntityReader) {
-	// 					reader := r.Data()
-	// 					data, err = ioutil.ReadAll(reader)
-	// 					Expect(err).ToNot(HaveOccurred())
-	// 				})
-	// 			})
-	// 			It("Should call the listener with the value", func() {
-	// 				Expect(string(data)).To(Equal("test"))
-	// 			})
-	// 			Context("When I change the value", func() {
-	// 				BeforeEach(func() {
-	// 					err = i.Transaction(func(m modifier.EntityWriter) error {
-	// 						return m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
-	// 							_, e := w.Write([]byte("test123"))
-	// 							return e
-	// 						})
-	// 					})
-	// 					Expect(err).ToNot(HaveOccurred())
-	// 				})
-	// 				It("Should call the listner with the new value", func() {
-	// 					Expect(string(data)).To(Equal("test123"))
-	// 				})
-	//
-	// 			})
-	//
-	// 		})
-	// 	})
-	// })
 
 })

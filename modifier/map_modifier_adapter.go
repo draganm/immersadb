@@ -59,7 +59,9 @@ func (m *MapModifierAdapter) ReadData(key string, f func(r io.Reader) error) err
 }
 
 func (m *MapModifierAdapter) ForEach(f func(key string, t EntityType) error) error {
-	return errors.New("Not supported")
+	return m.m.EntityReaderFor(m.path).ForEachMapEntry(func(key string, reader EntityReader) error {
+		return f(key, reader.Type())
+	})
 }
 
 func (m *MapModifierAdapter) ForEachAfter(key string, f func(index uint64, t EntityType) error) error {
@@ -99,6 +101,15 @@ func (m *MapModifierAdapter) ModifyArray(key string, f func(ctx ArrayWriter) err
 }
 func (m *MapModifierAdapter) CreateMap(key string, f func(ctx MapWriter) error) error {
 	newPath := m.path.Append(key)
+
+	err := m.m.CreateMap(newPath)
+	if err != nil {
+		return err
+	}
+
+	if f == nil {
+		return nil
+	}
 	return f(&MapModifierAdapter{m.m, newPath})
 }
 func (m *MapModifierAdapter) ModifyMap(key string, f func(ctx MapWriter) error) error {
