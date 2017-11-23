@@ -14,8 +14,8 @@ const Array EntityType = 2
 const Unknown EntityType = 0xffff
 
 type ArrayReader interface {
-	InArray(index uint64, f func(ctx ArrayReader) error) error
-	InMap(index uint64, f func(ctx MapReader) error) error
+	InArray(index uint64, f func(m ArrayReader) error) error
+	InMap(index uint64, f func(m MapReader) error) error
 	ReadData(index uint64, f func(r io.Reader) error) error
 	ForEach(f func(index uint64, t EntityType) error) error
 	ForEachAfter(from uint64, f func(index uint64, t EntityType) error) error
@@ -25,8 +25,8 @@ type ArrayReader interface {
 }
 
 type MapReader interface {
-	InArray(key string, f func(ctx ArrayReader) error) error
-	InMap(key string, f func(ctx MapReader) error) error
+	InArray(key string, f func(m ArrayReader) error) error
+	InMap(key string, f func(m MapReader) error) error
 	ReadData(key string, f func(r io.Reader) error) error
 	ForEach(f func(key string, t EntityType) error) error
 	ForEachAfter(key string, f func(index uint64, t EntityType) error) error
@@ -39,27 +39,28 @@ type MapReader interface {
 type ArrayWriter interface {
 	ArrayReader
 
-	AppendArray(f func(ctx ArrayWriter) error) (uint64, error)
-	ModifyArray(index uint64, f func(ctx ArrayWriter) error) error
+	AppendArray(f func(m ArrayWriter) error) (uint64, error)
+	ModifyArray(index uint64, f func(m ArrayWriter) error) error
 
-	AppendMap(f func(ctx MapWriter) error) (uint64, error)
-	ModifyMap(index uint64, f func(ctx MapWriter) error) error
+	AppendMap(f func(m MapWriter) error) (uint64, error)
+	ModifyMap(index uint64, f func(m MapWriter) error) error
 
 	AppendData(f func(w io.Writer) error) (uint64, error)
 	SetData(index uint64, f func(w io.Writer) error) error
 
-	DeleteFirst() error
+	// DeleteFirst() error
+	DeleteLast() error
 
 	DeleteAll() error
 }
 
 type MapWriter interface {
 	MapReader
-	CreateArray(key string, f func(ctx ArrayWriter) error) error
-	ModifyArray(key string, f func(ctx ArrayWriter) error) error
+	CreateArray(key string, f func(m ArrayWriter) error) error
+	ModifyArray(key string, f func(m ArrayWriter) error) error
 
-	CreateMap(key string, f func(ctx MapWriter) error) error
-	ModifyMap(key string, f func(ctx MapWriter) error) error
+	CreateMap(key string, f func(m MapWriter) error) error
+	ModifyMap(key string, f func(m MapWriter) error) error
 
 	SetData(key string, f func(w io.Writer) error) error
 

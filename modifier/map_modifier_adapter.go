@@ -79,19 +79,33 @@ func (m *MapModifierAdapter) Size() uint64 {
 }
 
 func (m *MapModifierAdapter) CreateArray(key string, f func(ctx ArrayWriter) error) error {
-	return errors.New("Not supported")
+	newPath := m.path.Append(key)
+	err := m.m.CreateArray(newPath)
+	if err != nil {
+		return err
+	}
+	if f == nil {
+		return nil
+	}
+	return f(&ArrayModifierAdapter{m.m, newPath})
 }
 func (m *MapModifierAdapter) ModifyArray(key string, f func(ctx ArrayWriter) error) error {
-	return errors.New("Not supported")
+	newPath := m.path.Append(key)
+	if !m.m.Exists(newPath) {
+		return ErrNotFound
+	}
+	return f(&ArrayModifierAdapter{m.m, newPath})
 }
 func (m *MapModifierAdapter) CreateMap(key string, f func(ctx MapWriter) error) error {
-	return errors.New("Not supported")
+	newPath := m.path.Append(key)
+	return f(&MapModifierAdapter{m.m, newPath})
 }
 func (m *MapModifierAdapter) ModifyMap(key string, f func(ctx MapWriter) error) error {
 	return errors.New("Not supported")
 }
 func (m *MapModifierAdapter) SetData(key string, f func(w io.Writer) error) error {
-	return errors.New("Not supported")
+	newPath := m.path.Append(key)
+	return m.m.CreateData(newPath, f)
 }
 
 func (m *MapModifierAdapter) DeleteKey(key string) error {

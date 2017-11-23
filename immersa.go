@@ -87,7 +87,7 @@ func (i *ImmersaDB) DumpGraph() {
 	graph.DumpGraph(i.store, i.store.NextChunkAddress()-chunk.CommitChunkSize)
 }
 
-func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
+func (i *ImmersaDB) Transaction(t func(modifier.MapWriter) error) error {
 	i.Lock()
 	defer i.Unlock()
 
@@ -96,7 +96,8 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 	_, refs, _ := chunk.Parts(cs.Chunk(cs.NextChunkAddress() - chunk.CommitChunkSize))
 
 	m := modifier.New(cs, chunkSize, refs[0])
-	err := t(m)
+	mm := modifier.NewMapModifierAdapter(m)
+	err := t(mm)
 	if err != nil {
 		return err
 	}

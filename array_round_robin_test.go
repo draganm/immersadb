@@ -34,17 +34,21 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 
 	Context("When I create an array", func() {
 		BeforeEach(func() {
-			err := i.Transaction(func(m modifier.EntityWriter) error {
-				return m.CreateArray(dbpath.Path{"ar"})
+			err := i.Transaction(func(m modifier.MapWriter) error {
+				return m.CreateArray("ar", nil)
+
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})
 		Context("When I prepend 5 values to the array in 5 transactions", func() {
 			BeforeEach(func() {
 				for j := 0; j < 5; j++ {
-					err := i.Transaction(func(m modifier.EntityWriter) error {
-						return m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
-							return msgpack.NewEncoder(w).Encode(j)
+					err := i.Transaction(func(m modifier.MapWriter) error {
+						return m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+							_, err := m.AppendData(func(w io.Writer) error {
+								return msgpack.NewEncoder(w).Encode(j)
+							})
+							return err
 						})
 					})
 					Expect(err).ToNot(HaveOccurred())
@@ -77,13 +81,23 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 
 				Context("When I prepend new and delete last element", func() {
 					BeforeEach(func() {
-						err := i.Transaction(func(m modifier.EntityWriter) error {
+						err := i.Transaction(func(m modifier.MapWriter) error {
 
-							err := m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
-								return msgpack.NewEncoder(w).Encode(5)
+							err := m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+								_, err := m.AppendData(func(w io.Writer) error {
+									return msgpack.NewEncoder(w).Encode(5)
+								})
+								return err
 							})
 
-							err = m.Delete(dbpath.Path{"ar", 5})
+							if err != nil {
+								return err
+							}
+
+							err = m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+								return m.DeleteLast()
+							})
+
 							if err != nil {
 								return err
 							}
@@ -109,17 +123,24 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 
 					Context("When I rotate one more element", func() {
 						BeforeEach(func() {
-							err := i.Transaction(func(m modifier.EntityWriter) error {
+							err := i.Transaction(func(m modifier.MapWriter) error {
 
-								err := m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
-									return msgpack.NewEncoder(w).Encode(6)
+								err := m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+									_, err := m.AppendData(func(w io.Writer) error {
+										return msgpack.NewEncoder(w).Encode(6)
+									})
+									return err
 								})
 
 								if err != nil {
 									return err
+
 								}
 
-								err = m.Delete(dbpath.Path{"ar", 5})
+								err = m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+									return m.DeleteLast()
+								})
+
 								if err != nil {
 									return err
 								}

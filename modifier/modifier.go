@@ -158,7 +158,7 @@ func (m *Modifier) CreateArray(path dbpath.Path) error {
 			vm.RootAddress = newRoot
 			return nil
 		default:
-			panic("not yet implemented")
+			panic(fmt.Sprintf("not yet implemented: %v", last))
 		}
 	})
 
@@ -189,7 +189,7 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 			}
 			vm.RootAddress = newRoot
 			return nil
-		case int:
+		case int, uint64:
 			idx := last.(int)
 			if idx != 0 {
 				return errors.New("Only append to array head is supported")
@@ -215,7 +215,7 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 
 			return nil
 		default:
-			panic("not yet implemented")
+			panic(fmt.Errorf("not yet implemented %#v", last))
 		}
 
 	})
@@ -349,8 +349,8 @@ func (m *Modifier) Delete(path dbpath.Path) error {
 			}
 			mm.RootAddress = addr
 			return nil
-		case int:
-			addr, err := m.deleteFromArray(mm.RootAddress, uint64(lastElement.(int)))
+		case uint64:
+			addr, err := m.deleteFromArray(mm.RootAddress, lastElement.(uint64))
 			if err != nil {
 				return err
 			}

@@ -97,7 +97,13 @@ func (m *ArrayModifierAdapter) ModifyMap(index uint64, f func(ctx MapWriter) err
 
 //
 func (m *ArrayModifierAdapter) AppendData(f func(w io.Writer) error) (uint64, error) {
-	return 0, errors.New("Not supported")
+	newPath := m.path.Append(0)
+	err := m.m.CreateData(newPath, f)
+	if err != nil {
+		return 0, err
+	}
+	size := m.m.EntityReaderFor(m.path).Size()
+	return size, nil
 }
 
 func (m *ArrayModifierAdapter) SetData(index uint64, f func(w io.Writer) error) error {
@@ -105,11 +111,17 @@ func (m *ArrayModifierAdapter) SetData(index uint64, f func(w io.Writer) error) 
 }
 
 //
-func (m *ArrayModifierAdapter) DeleteFirst() error {
-	return errors.New("Not supported")
+func (m *ArrayModifierAdapter) DeleteLast() error {
+	size := m.m.EntityReaderFor(m.path).Size()
+	newPath := m.path.Append(size - 1)
+	return m.m.Delete(newPath)
 }
 
 //
 func (m *ArrayModifierAdapter) DeleteAll() error {
 	return errors.New("Not supported")
 }
+
+// func (m *ArrayModifierAdapter) DeleteFirst() error {
+// 	return errors.New("Not supported")
+// }
