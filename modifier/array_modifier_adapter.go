@@ -14,8 +14,6 @@ func newArrayModifierAdapter(m *Modifier, path dbpath.Path) *ArrayModifierAdapte
 	}
 }
 
-// var ErrKeyDoesNotExist = errors.New("Key does not exist")
-
 type ArrayModifierAdapter struct {
 	m    *Modifier
 	path dbpath.Path
@@ -86,16 +84,16 @@ func (m *ArrayModifierAdapter) ModifyArray(index uint64, f func(ctx ArrayWriter)
 	return errors.New("Not supported")
 }
 
-//
 func (m *ArrayModifierAdapter) AppendMap(f func(ctx MapWriter) error) (uint64, error) {
-	return 0, errors.New("Not supported")
+	oldSize := m.m.EntityReaderFor(m.path).Size()
+	newPath := m.path.Append(0)
+	return oldSize + 1, m.m.CreateMap(newPath)
 }
 
 func (m *ArrayModifierAdapter) ModifyMap(index uint64, f func(ctx MapWriter) error) error {
 	return errors.New("Not supported")
 }
 
-//
 func (m *ArrayModifierAdapter) AppendData(f func(w io.Writer) error) (uint64, error) {
 	newPath := m.path.Append(0)
 	err := m.m.CreateData(newPath, f)
@@ -110,18 +108,12 @@ func (m *ArrayModifierAdapter) SetData(index uint64, f func(w io.Writer) error) 
 	return errors.New("Not supported")
 }
 
-//
 func (m *ArrayModifierAdapter) DeleteLast() error {
 	size := m.m.EntityReaderFor(m.path).Size()
 	newPath := m.path.Append(size - 1)
 	return m.m.Delete(newPath)
 }
 
-//
 func (m *ArrayModifierAdapter) DeleteAll() error {
 	return errors.New("Not supported")
 }
-
-// func (m *ArrayModifierAdapter) DeleteFirst() error {
-// 	return errors.New("Not supported")
-// }

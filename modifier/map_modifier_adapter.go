@@ -117,8 +117,13 @@ func (m *MapModifierAdapter) CreateArray(key string, f func(ctx ArrayWriter) err
 func (m *MapModifierAdapter) ModifyArray(key string, f func(ctx ArrayWriter) error) error {
 	newPath := m.path.Append(key)
 	if !m.m.Exists(newPath) {
-		return ErrNotFound
+		return ErrKeyDoesNotExist
 	}
+
+	if m.m.EntityReaderFor(newPath).Type() != Array {
+		return ErrNotArray
+	}
+
 	return f(&ArrayModifierAdapter{m.m, newPath})
 }
 

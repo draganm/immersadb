@@ -453,6 +453,56 @@ var _ = Describe("Modify Map", func() {
 		})
 	})
 
+	Describe("ModifyArray", func() {
+		var err error
+		JustBeforeEach(func() {
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					_, e := m.AppendMap(nil)
+					return e
+				})
+			})
+		})
+		Context("When the key does not exist", func() {
+			It("Should return modifier.ErrKeyDoesNotExist error", func() {
+				Expect(err).To(Equal(modifier.ErrKeyDoesNotExist))
+			})
+		})
+		Context("When the key exists and is an array", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateArray("test", nil)
+				})).To(Succeed())
+			})
+
+			It("Should not return error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should execute the modification", func() {
+				var size uint64
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						size = m.Size()
+						return nil
+					})
+				})).To(Succeed())
+				Expect(size).To(Equal(uint64(1)))
+			})
+		})
+		Context("When the key not an array", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+
+			It("Should return error modifier.ErrNotArray", func() {
+				Expect(err).To(Equal(modifier.ErrNotArray))
+			})
+		})
+	})
+
 	Describe("Type", func() {
 		var t modifier.EntityType
 		JustBeforeEach(func() {
