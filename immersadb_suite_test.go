@@ -140,8 +140,8 @@ var _ = Describe("ImmersaDB", func() {
 				Context("When I change the value", func() {
 					BeforeEach(func() {
 						err := i.Transaction(func(m modifier.MapWriter) error {
-							return m.CreateMap("test", func(m modifier.MapWriter) error {
-								return nil
+							return m.ModifyMap("test", func(m modifier.MapWriter) error {
+								return m.CreateArray("foo", nil)
 							})
 						})
 						Expect(err).ToNot(HaveOccurred())

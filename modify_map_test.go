@@ -30,6 +30,49 @@ var _ = Describe("Modify Map", func() {
 		}
 	})
 
+	Describe("CreateMap", func() {
+		var err error
+		var executed bool
+		JustBeforeEach(func() {
+			executed = false
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.CreateMap("test", func(m modifier.MapWriter) error {
+					executed = true
+					return nil
+				})
+			})
+		})
+		Context("When key does not exist", func() {
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should create a map", func() {
+				var t modifier.EntityType
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					t = m.Type("test")
+					return nil
+				})).To(Succeed())
+				Expect(t).To(Equal(modifier.Map))
+			})
+			It("Should execute passed function", func() {
+				Expect(executed).To(BeTrue())
+			})
+		})
+		Context("When key already exists", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateArray("test", nil)
+				})).To(Succeed())
+			})
+			It("Should return modifier.ErrKeyAlreadyExists", func() {
+				Expect(err).To(Equal(modifier.ErrKeyAlreadyExists))
+			})
+			It("Should not execute passed function", func() {
+				Expect(executed).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("DeleteAll", func() {
 		var err error
 

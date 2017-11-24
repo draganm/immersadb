@@ -18,6 +18,9 @@ var ErrNotMap = errors.New("Not a map")
 var ErrNotArray = errors.New("Not an array")
 var ErrNotData = errors.New("Not data")
 
+var ErrKeyDoesNotExist = errors.New("Key does not exist")
+var ErrKeyAlreadyExists = errors.New("Key already exists")
+
 type ArrayReader interface {
 	InArray(index uint64, f func(m ArrayReader) error) error
 	InMap(index uint64, f func(m MapReader) error) error

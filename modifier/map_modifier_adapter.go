@@ -14,8 +14,6 @@ func NewMapModifierAdapter(m *Modifier) *MapModifierAdapter {
 	}
 }
 
-var ErrKeyDoesNotExist = errors.New("Key does not exist")
-
 type MapModifierAdapter struct {
 	m    *Modifier
 	path dbpath.Path
@@ -102,6 +100,7 @@ func (m *MapModifierAdapter) Size() uint64 {
 
 func (m *MapModifierAdapter) CreateArray(key string, f func(ctx ArrayWriter) error) error {
 	newPath := m.path.Append(key)
+
 	err := m.m.CreateArray(newPath)
 	if err != nil {
 		return err
@@ -118,8 +117,13 @@ func (m *MapModifierAdapter) ModifyArray(key string, f func(ctx ArrayWriter) err
 	}
 	return f(&ArrayModifierAdapter{m.m, newPath})
 }
+
 func (m *MapModifierAdapter) CreateMap(key string, f func(ctx MapWriter) error) error {
 	newPath := m.path.Append(key)
+
+	if m.m.HasPath(newPath) {
+		return ErrKeyAlreadyExists
+	}
 
 	err := m.m.CreateMap(newPath)
 	if err != nil {
