@@ -59,8 +59,13 @@ func (m *MapModifierAdapter) InArray(key string, f func(ctx ArrayReader) error) 
 
 func (m *MapModifierAdapter) ReadData(key string, f func(r io.Reader) error) error {
 	newPath := m.path.Append(key)
+
 	if !m.m.Exists(newPath) {
 		return ErrKeyDoesNotExist
+	}
+
+	if m.m.EntityReaderFor(newPath).Type() != Data {
+		return ErrNotData
 	}
 
 	return f(m.m.EntityReaderFor(newPath).Data())

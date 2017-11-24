@@ -16,6 +16,7 @@ const Unknown EntityType = 0xffff
 
 var ErrNotMap = errors.New("Not a map")
 var ErrNotArray = errors.New("Not an array")
+var ErrNotData = errors.New("Not data")
 
 type ArrayReader interface {
 	InArray(index uint64, f func(m ArrayReader) error) error

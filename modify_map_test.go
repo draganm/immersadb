@@ -1,6 +1,7 @@
 package immersadb_test
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -117,6 +118,58 @@ var _ = Describe("Modify Map", func() {
 					}))
 					Expect(exists).To(BeFalse())
 				})
+			})
+		})
+
+	})
+
+	Describe("ReadData", func() {
+		var read []byte
+		var err error
+		JustBeforeEach(func() {
+			read = nil
+			err = i.Transaction(func(w modifier.MapWriter) error {
+				return w.ReadData("test", func(r io.Reader) error {
+					d, e := ioutil.ReadAll(r)
+					read = d
+					return e
+				})
+			})
+		})
+
+		Context("When data does not exist", func() {
+			It("Should return modifier.ErrKeyDoesNotExist", func() {
+				Expect(err).To(Equal(modifier.ErrKeyDoesNotExist))
+			})
+		})
+
+		Context("When the key is not data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+
+			It("Should return modifier.ErrNotData error", func() {
+				Expect(err).To(Equal(modifier.ErrNotData))
+			})
+		})
+
+		Context("When data exists", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.SetData("test", func(w io.Writer) error {
+						_, e := w.Write([]byte{1, 2, 3})
+						return e
+					})
+				})).To(Succeed())
+			})
+
+			It("Should not return error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should read the data", func() {
+				Expect(read).To(Equal([]byte{1, 2, 3}))
 			})
 		})
 

@@ -87,7 +87,7 @@ func (i *ImmersaDB) DumpGraph() {
 	graph.DumpGraph(i.store, i.store.NextChunkAddress()-chunk.CommitChunkSize)
 }
 
-func (i *ImmersaDB) Transaction(t func(modifier.MapWriter) error) error {
+func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	i.Lock()
 	defer i.Unlock()
 
