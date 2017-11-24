@@ -137,5 +137,5 @@ func (m *MapModifierAdapter) DeleteKey(key string) error {
 	return m.m.Delete(newPath)
 }
 func (m *MapModifierAdapter) DeleteAll() error {
-	return errors.New("Not supported")
+	return m.m.clearMap(m.path)
 }

@@ -338,6 +338,17 @@ func (m *Modifier) EntityReaderFor(path dbpath.Path) EntityReader {
 	return New(m.Store, m.chunkSize, addr)
 }
 
+func (m *Modifier) clearMap(path dbpath.Path) error {
+	return m.modify(path[:len(path)], func(mm *Modifier) error {
+		rootAddres, err := ttfmap.CreateEmpty(m.Store)
+		if err != nil {
+			return err
+		}
+		mm.RootAddress = rootAddres
+		return nil
+	})
+}
+
 func (m *Modifier) Delete(path dbpath.Path) error {
 	lastElement := path[len(path)-1]
 	return m.modify(path[:len(path)-1], func(mm *Modifier) error {

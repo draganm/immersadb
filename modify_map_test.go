@@ -29,6 +29,99 @@ var _ = Describe("Modify Map", func() {
 		}
 	})
 
+	Describe("DeleteAll", func() {
+		var err error
+
+		Context("When deleting sub-map", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+			JustBeforeEach(func() {
+				err = i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyMap("test", func(m modifier.MapWriter) error {
+						return m.DeleteAll()
+					})
+
+				})
+			})
+
+			Context("When the map is empty", func() {
+				It("Should not return error", func() {
+					Expect(err).To(Succeed())
+				})
+			})
+
+			Context("When a key exists", func() {
+				BeforeEach(func() {
+					Expect(i.Transaction(func(m modifier.MapWriter) error {
+						return m.ModifyMap("test", func(m modifier.MapWriter) error {
+							return m.CreateMap("subtest", nil)
+						})
+					}))
+				})
+				It("Should not return error", func() {
+					Expect(err).To(BeNil())
+				})
+				It("Should delete the key", func() {
+					exists := true
+					Expect(i.Transaction(func(m modifier.MapWriter) error {
+						return m.InMap("test", func(m modifier.MapReader) error {
+							exists = m.HasKey("subtest")
+							return nil
+						})
+					}))
+					Expect(exists).To(BeFalse())
+				})
+				It("Should not delete the parent map", func() {
+					exists := false
+					Expect(i.Transaction(func(m modifier.MapWriter) error {
+						exists = m.HasKey("test")
+						return nil
+					}))
+					Expect(exists).To(BeTrue())
+
+				})
+			})
+		})
+
+		Context("When deleting root map", func() {
+
+			JustBeforeEach(func() {
+				err = i.Transaction(func(m modifier.MapWriter) error {
+					return m.DeleteAll()
+				})
+			})
+
+			Context("When the map is empty", func() {
+				It("Should not return error", func() {
+					Expect(err).To(Succeed())
+				})
+			})
+
+			Context("When a key exists", func() {
+				BeforeEach(func() {
+					Expect(i.Transaction(func(m modifier.MapWriter) error {
+						return m.CreateMap("test", nil)
+					}))
+				})
+				It("Should not return error", func() {
+					Expect(err).To(BeNil())
+				})
+				It("Should delete the key", func() {
+					exists := true
+					Expect(i.Transaction(func(m modifier.MapWriter) error {
+						exists = m.HasKey("test")
+						return nil
+					}))
+					Expect(exists).To(BeFalse())
+				})
+			})
+		})
+
+	})
+
 	Describe("DeleteKey", func() {
 		var err error
 		JustBeforeEach(func() {
