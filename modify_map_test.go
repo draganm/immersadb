@@ -367,6 +367,54 @@ var _ = Describe("Modify Map", func() {
 		})
 	})
 
+	Describe("Type", func() {
+		var t modifier.EntityType
+		JustBeforeEach(func() {
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				t = m.Type("test")
+				return nil
+			})).To(Succeed())
+		})
+		Context("When key does not exist", func() {
+			It("Should return modifier.Unknown", func() {
+				Expect(t).To(Equal(modifier.Unknown))
+			})
+		})
+		Context("When key is an array", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateArray("test", nil)
+				})).To(Succeed())
+			})
+			It("Should return modifier.Array", func() {
+				Expect(t).To(Equal(modifier.Array))
+			})
+		})
+		Context("When key is a map", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+			It("Should return modifier.Map", func() {
+				Expect(t).To(Equal(modifier.Map))
+			})
+		})
+		Context("When key is data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.SetData("test", func(w io.Writer) error {
+						_, e := w.Write([]byte{1, 2, 3})
+						return e
+					})
+				})).To(Succeed())
+			})
+			It("Should return modifier.Data", func() {
+				Expect(t).To(Equal(modifier.Data))
+			})
+		})
+	})
+
 	Describe("ForEach", func() {
 
 		type KeyType struct {

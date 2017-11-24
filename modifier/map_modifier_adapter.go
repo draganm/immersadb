@@ -87,7 +87,13 @@ func (m *MapModifierAdapter) HasKey(key string) bool {
 }
 
 func (m *MapModifierAdapter) Type(key string) EntityType {
-	return m.m.EntityReaderFor(m.path).Type()
+	newPath := m.path.Append(key)
+
+	if !m.m.Exists(newPath) {
+		return Unknown
+	}
+
+	return m.m.EntityReaderFor(newPath).Type()
 }
 
 func (m *MapModifierAdapter) Size() uint64 {
