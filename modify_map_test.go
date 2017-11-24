@@ -209,6 +209,80 @@ var _ = Describe("Modify Map", func() {
 
 	})
 
+	Describe("SetData", func() {
+		var err error
+		JustBeforeEach(func() {
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.SetData("test", func(w io.Writer) error {
+					_, e := w.Write([]byte{1, 2, 3})
+					return e
+				})
+			})
+		})
+
+		Context("When key does not exist", func() {
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should create the data", func() {
+				var data []byte
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ReadData("test", func(r io.Reader) error {
+						d, e := ioutil.ReadAll(r)
+						data = d
+						return e
+					})
+				})).To(Succeed())
+				Expect(data).To(Equal([]byte{1, 2, 3}))
+			})
+		})
+
+		Context("When key already exists and is of type Data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.SetData("test", func(w io.Writer) error {
+						_, e := w.Write([]byte{3, 2, 1})
+						return e
+					})
+				})).To(Succeed())
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+			It("Should overwrite the data", func() {
+				var data []byte
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ReadData("test", func(r io.Reader) error {
+						d, e := ioutil.ReadAll(r)
+						data = d
+						return e
+					})
+				})).To(Succeed())
+				Expect(data).To(Equal([]byte{1, 2, 3}))
+			})
+		})
+
+		Context("When key already exists and is not of type Data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+			It("Should return modifier.ErrNotData error", func() {
+				Expect(err).To(Equal(modifier.ErrNotData))
+			})
+			It("Should not overwrite the data", func() {
+				var t modifier.EntityType
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					t = m.Type("test")
+					return nil
+				})).To(Succeed())
+				Expect(t).To(Equal(modifier.Map))
+			})
+		})
+
+	})
+
 	Describe("ReadData", func() {
 		var read []byte
 		var err error

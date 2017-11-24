@@ -158,7 +158,13 @@ func (m *MapModifierAdapter) ModifyMap(key string, f func(ctx MapWriter) error) 
 }
 func (m *MapModifierAdapter) SetData(key string, f func(w io.Writer) error) error {
 	newPath := m.path.Append(key)
+
+	if m.m.HasPath(newPath) && m.m.EntityReaderFor(newPath).Type() != Data {
+		return ErrNotData
+	}
+
 	return m.m.CreateData(newPath, f)
+
 }
 
 func (m *MapModifierAdapter) DeleteKey(key string) error {
