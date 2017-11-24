@@ -130,7 +130,11 @@ func (m *MapModifierAdapter) SetData(key string, f func(w io.Writer) error) erro
 }
 
 func (m *MapModifierAdapter) DeleteKey(key string) error {
-	return errors.New("Not supported")
+	newPath := m.path.Append(key)
+	if !m.m.Exists(newPath) {
+		return ErrKeyDoesNotExist
+	}
+	return m.m.Delete(newPath)
 }
 func (m *MapModifierAdapter) DeleteAll() error {
 	return errors.New("Not supported")

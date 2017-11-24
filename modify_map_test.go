@@ -29,6 +29,41 @@ var _ = Describe("Modify Map", func() {
 		}
 	})
 
+	Describe("DeleteKey", func() {
+		var err error
+		JustBeforeEach(func() {
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.DeleteKey("test")
+			})
+		})
+
+		Context("When the key does not exist", func() {
+			It("Should return modifier.ErrKeyDoesNotExist error", func() {
+				Expect(err).To(Equal(modifier.ErrKeyDoesNotExist))
+			})
+		})
+
+		Context("When the key exists", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				}))
+			})
+			It("Should not return error", func() {
+				Expect(err).To(BeNil())
+			})
+			It("Should delete the key", func() {
+				exists := true
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					exists = m.HasKey("test")
+					return nil
+				}))
+				Expect(exists).To(BeFalse())
+			})
+		})
+
+	})
+
 	Describe("ModifyMap", func() {
 		var err error
 		JustBeforeEach(func() {
