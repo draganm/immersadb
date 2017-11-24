@@ -21,6 +21,8 @@ var ErrNotData = errors.New("Not data")
 var ErrKeyDoesNotExist = errors.New("Key does not exist")
 var ErrKeyAlreadyExists = errors.New("Key already exists")
 
+var ErrIndexOutOfBounds = errors.New("Index out of bounds")
+
 type ArrayReader interface {
 	InArray(index uint64, f func(m ArrayReader) error) error
 	InMap(index uint64, f func(m MapReader) error) error
@@ -47,13 +49,13 @@ type MapReader interface {
 type ArrayWriter interface {
 	ArrayReader
 
-	AppendArray(f func(m ArrayWriter) error) (uint64, error)
+	PrependArray(f func(m ArrayWriter) error) (uint64, error)
 	ModifyArray(index uint64, f func(m ArrayWriter) error) error
 
-	AppendMap(f func(m MapWriter) error) (uint64, error)
+	PrependMap(f func(m MapWriter) error) (uint64, error)
 	ModifyMap(index uint64, f func(m MapWriter) error) error
 
-	AppendData(f func(w io.Writer) error) (uint64, error)
+	PrependData(f func(w io.Writer) error) (uint64, error)
 	SetData(index uint64, f func(w io.Writer) error) error
 
 	// DeleteFirst() error

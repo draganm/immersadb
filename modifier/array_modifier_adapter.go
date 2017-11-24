@@ -21,9 +21,14 @@ type ArrayModifierAdapter struct {
 
 func (m *ArrayModifierAdapter) InMap(index uint64, f func(ctx MapReader) error) error {
 
+	if index >= m.Size() {
+		return ErrIndexOutOfBounds
+	}
+
 	newPath := m.path.Append(index)
-	if !m.m.Exists(newPath) {
-		return ErrKeyDoesNotExist
+
+	if m.m.EntityReaderFor(newPath).Type() != Map {
+		return ErrNotMap
 	}
 
 	mm := &MapModifierAdapter{
@@ -76,15 +81,17 @@ func (m *ArrayModifierAdapter) Size() uint64 {
 	return m.m.EntityReaderFor(m.path).Size()
 }
 
-func (m *ArrayModifierAdapter) AppendArray(f func(ctx ArrayWriter) error) (uint64, error) {
-	return 0, errors.New("Not supported")
+func (m *ArrayModifierAdapter) PrependArray(f func(ctx ArrayWriter) error) (uint64, error) {
+	oldSize := m.m.EntityReaderFor(m.path).Size()
+	newPath := m.path.Append(uint64(0))
+	return oldSize + 1, m.m.CreateArray(newPath)
 }
 
 func (m *ArrayModifierAdapter) ModifyArray(index uint64, f func(ctx ArrayWriter) error) error {
 	return errors.New("Not supported")
 }
 
-func (m *ArrayModifierAdapter) AppendMap(f func(ctx MapWriter) error) (uint64, error) {
+func (m *ArrayModifierAdapter) PrependMap(f func(ctx MapWriter) error) (uint64, error) {
 	oldSize := m.m.EntityReaderFor(m.path).Size()
 	newPath := m.path.Append(0)
 	return oldSize + 1, m.m.CreateMap(newPath)
@@ -94,7 +101,7 @@ func (m *ArrayModifierAdapter) ModifyMap(index uint64, f func(ctx MapWriter) err
 	return errors.New("Not supported")
 }
 
-func (m *ArrayModifierAdapter) AppendData(f func(w io.Writer) error) (uint64, error) {
+func (m *ArrayModifierAdapter) PrependData(f func(w io.Writer) error) (uint64, error) {
 	newPath := m.path.Append(0)
 	err := m.m.CreateData(newPath, f)
 	if err != nil {

@@ -157,6 +157,21 @@ func (m *Modifier) CreateArray(path dbpath.Path) error {
 
 			vm.RootAddress = newRoot
 			return nil
+		case uint64:
+			valueAddr, err := vm.createEmptyArrayLeaf()
+			if err != nil {
+				return err
+			}
+
+			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
+			if err != nil {
+				return err
+			}
+
+			vm.RootAddress = newRoot
+
+			return nil
+
 		default:
 			panic(fmt.Sprintf("not yet implemented: %v", last))
 		}
@@ -238,9 +253,9 @@ func (m *Modifier) lookupAddress(path dbpath.Path, from uint64) (uint64, error) 
 			}
 
 			from = address
-		case int:
+		case uint64:
 			var err error
-			from, err = m.lookupArray(from, uint64(path[0].(int)))
+			from, err = m.lookupArray(from, path[0].(uint64))
 			if err != nil {
 				return 0, err
 			}

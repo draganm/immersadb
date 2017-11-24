@@ -45,7 +45,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 				for j := 0; j < 5; j++ {
 					err := i.Transaction(func(m modifier.MapWriter) error {
 						return m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
-							_, err := m.AppendData(func(w io.Writer) error {
+							_, err := m.PrependData(func(w io.Writer) error {
 								return msgpack.NewEncoder(w).Encode(j)
 							})
 							return err
@@ -84,7 +84,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 						err := i.Transaction(func(m modifier.MapWriter) error {
 
 							err := m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
-								_, err := m.AppendData(func(w io.Writer) error {
+								_, err := m.PrependData(func(w io.Writer) error {
 									return msgpack.NewEncoder(w).Encode(5)
 								})
 								return err
@@ -126,7 +126,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 							err := i.Transaction(func(m modifier.MapWriter) error {
 
 								err := m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
-									_, err := m.AppendData(func(w io.Writer) error {
+									_, err := m.PrependData(func(w io.Writer) error {
 										return msgpack.NewEncoder(w).Encode(6)
 									})
 									return err
