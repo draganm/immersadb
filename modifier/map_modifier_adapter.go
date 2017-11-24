@@ -28,6 +28,10 @@ func (m *MapModifierAdapter) InMap(key string, f func(ctx MapReader) error) erro
 		return ErrKeyDoesNotExist
 	}
 
+	if m.m.EntityReaderFor(newPath).Type() != Map {
+		return ErrNotMap
+	}
+
 	mm := &MapModifierAdapter{
 		m:    m.m,
 		path: newPath,

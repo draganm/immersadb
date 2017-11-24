@@ -122,6 +122,60 @@ var _ = Describe("Modify Map", func() {
 
 	})
 
+	Describe("InMap", func() {
+		var executed bool
+		var err error
+		JustBeforeEach(func() {
+			executed = false
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.InMap("test", func(m modifier.MapReader) error {
+					executed = true
+					return nil
+				})
+			})
+		})
+
+		Context("When key exists and is a map", func() {
+			BeforeEach(func() {
+				Expect(
+					i.Transaction(func(m modifier.MapWriter) error {
+						return m.CreateMap("test", nil)
+					})).To(Succeed())
+			})
+			It("Should execute the passed function", func() {
+				Expect(executed).To(BeTrue())
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("When key exists and is not a map", func() {
+			BeforeEach(func() {
+				Expect(
+					i.Transaction(func(m modifier.MapWriter) error {
+						return m.CreateArray("test", nil)
+					})).To(Succeed())
+			})
+			It("Should not execute the passed function", func() {
+				Expect(executed).To(BeFalse())
+			})
+			It("Should not return modifier.ErrNotMap error", func() {
+				Expect(err).To(Equal(modifier.ErrNotMap))
+			})
+		})
+
+		Context("When does not exist exist", func() {
+			It("Should not execute the passed function", func() {
+				Expect(executed).To(BeFalse())
+			})
+			It("Should not return modifier.ErrKeyDoesNotExist error", func() {
+				Expect(err).To(Equal(modifier.ErrKeyDoesNotExist))
+			})
+		})
+
+	})
+
 	Describe("DeleteKey", func() {
 		var err error
 		JustBeforeEach(func() {
