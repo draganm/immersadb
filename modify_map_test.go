@@ -29,6 +29,55 @@ var _ = Describe("Modify Map", func() {
 		}
 	})
 
+	Describe("ModifyMap", func() {
+		var err error
+		JustBeforeEach(func() {
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyMap("test", func(m modifier.MapWriter) error {
+					return m.CreateMap("subtest", nil)
+				})
+			})
+		})
+		Context("When the map does not exist", func() {
+			It("Should return modifier.ErrKeyDoesNotExist error", func() {
+				Expect(err).To(Equal(modifier.ErrKeyDoesNotExist))
+			})
+		})
+		Context("When the map exists", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+
+			It("Should not return error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should execute the modification", func() {
+				var found bool
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InMap("test", func(m modifier.MapReader) error {
+						found = m.HasKey("subtest")
+						return nil
+					})
+				})).To(Succeed())
+				Expect(found).To(BeTrue())
+			})
+		})
+		Context("When the key not a map", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateArray("test", nil)
+				})).To(Succeed())
+			})
+
+			It("Should return error modifier.ErrNotMap", func() {
+				Expect(err).To(Equal(modifier.ErrNotMap))
+			})
+		})
+	})
+
 	Describe("ForEach", func() {
 
 		type KeyType struct {

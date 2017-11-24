@@ -1,6 +1,7 @@
 package modifier
 
 import (
+	"errors"
 	"io"
 
 	"github.com/draganm/immersadb/dbpath"
@@ -12,6 +13,8 @@ const Data EntityType = 0
 const Map EntityType = 1
 const Array EntityType = 2
 const Unknown EntityType = 0xffff
+
+var ErrNotMap = errors.New("Not a map")
 
 type ArrayReader interface {
 	InArray(index uint64, f func(m ArrayReader) error) error

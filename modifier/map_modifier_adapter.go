@@ -113,7 +113,16 @@ func (m *MapModifierAdapter) CreateMap(key string, f func(ctx MapWriter) error) 
 	return f(&MapModifierAdapter{m.m, newPath})
 }
 func (m *MapModifierAdapter) ModifyMap(key string, f func(ctx MapWriter) error) error {
-	return errors.New("Not supported")
+	newPath := m.path.Append(key)
+	if !m.m.Exists(newPath) {
+		return ErrKeyDoesNotExist
+	}
+
+	if m.m.EntityReaderFor(newPath).Type() != Map {
+		return ErrNotMap
+	}
+
+	return f(&MapModifierAdapter{m.m, newPath})
 }
 func (m *MapModifierAdapter) SetData(key string, f func(w io.Writer) error) error {
 	newPath := m.path.Append(key)
