@@ -122,6 +122,60 @@ var _ = Describe("Modify Map", func() {
 
 	})
 
+	Describe("InArray", func() {
+		var executed bool
+		var err error
+		JustBeforeEach(func() {
+			executed = false
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.InArray("test", func(m modifier.ArrayReader) error {
+					executed = true
+					return nil
+				})
+			})
+		})
+
+		Context("When key exists and is an array", func() {
+			BeforeEach(func() {
+				Expect(
+					i.Transaction(func(m modifier.MapWriter) error {
+						return m.CreateArray("test", nil)
+					})).To(Succeed())
+			})
+			It("Should execute the passed function", func() {
+				Expect(executed).To(BeTrue())
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("When key exists and is not an array", func() {
+			BeforeEach(func() {
+				Expect(
+					i.Transaction(func(m modifier.MapWriter) error {
+						return m.CreateMap("test", nil)
+					})).To(Succeed())
+			})
+			It("Should not execute the passed function", func() {
+				Expect(executed).To(BeFalse())
+			})
+			It("Should not return modifier.ErrNotArray error", func() {
+				Expect(err).To(Equal(modifier.ErrNotArray))
+			})
+		})
+
+		Context("When key does not exist", func() {
+			It("Should not execute the passed function", func() {
+				Expect(executed).To(BeFalse())
+			})
+			It("Should not return modifier.ErrKeyDoesNotExist error", func() {
+				Expect(err).To(Equal(modifier.ErrKeyDoesNotExist))
+			})
+		})
+
+	})
+
 	Describe("InMap", func() {
 		var executed bool
 		var err error
@@ -165,7 +219,7 @@ var _ = Describe("Modify Map", func() {
 			})
 		})
 
-		Context("When does not exist exist", func() {
+		Context("When key does not exist", func() {
 			It("Should not execute the passed function", func() {
 				Expect(executed).To(BeFalse())
 			})

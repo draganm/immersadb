@@ -46,6 +46,10 @@ func (m *MapModifierAdapter) InArray(key string, f func(ctx ArrayReader) error) 
 		return ErrKeyDoesNotExist
 	}
 
+	if m.m.EntityReaderFor(newPath).Type() != Array {
+		return ErrNotArray
+	}
+
 	mm := &ArrayModifierAdapter{
 		m:    m.m,
 		path: newPath,
