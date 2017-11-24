@@ -101,6 +101,10 @@ func (m *MapModifierAdapter) Size() uint64 {
 func (m *MapModifierAdapter) CreateArray(key string, f func(ctx ArrayWriter) error) error {
 	newPath := m.path.Append(key)
 
+	if m.m.HasPath(newPath) {
+		return ErrKeyAlreadyExists
+	}
+
 	err := m.m.CreateArray(newPath)
 	if err != nil {
 		return err
