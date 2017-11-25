@@ -376,4 +376,42 @@ var _ = Describe("Modify Array", func() {
 			})
 		})
 	})
+
+	Describe("Size", func() {
+
+		BeforeEach(func() {
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.CreateArray("test", nil)
+			})).To(Succeed())
+		})
+
+		var s uint64
+		JustBeforeEach(func() {
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.InArray("test", func(m modifier.ArrayReader) error {
+					s = m.Size()
+					return nil
+				})
+			})).To(Succeed())
+		})
+
+		Context("When the array is empty", func() {
+			It("Should return 0", func() {
+				Expect(s).To(Equal(uint64(0)))
+			})
+		})
+		Context("When the array has one element", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should return 1", func() {
+				Expect(s).To(Equal(uint64(1)))
+			})
+		})
+	})
+
 })
