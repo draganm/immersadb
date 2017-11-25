@@ -111,7 +111,21 @@ func (m *ArrayModifierAdapter) PrependArray(f func(ctx ArrayWriter) error) error
 }
 
 func (m *ArrayModifierAdapter) ModifyArray(index uint64, f func(ctx ArrayWriter) error) error {
-	return errors.New("Not supported")
+	if index >= m.Size() {
+		return ErrIndexOutOfBounds
+	}
+
+	if m.Type(index) != Array {
+		return ErrNotArray
+	}
+
+	if f == nil {
+		return nil
+	}
+	newPath := m.path.Append(index)
+
+	return f(&ArrayModifierAdapter{m.m, newPath})
+
 }
 
 func (m *ArrayModifierAdapter) PrependMap(f func(ctx MapWriter) error) error {

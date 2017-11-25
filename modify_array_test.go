@@ -443,4 +443,56 @@ var _ = Describe("Modify Array", func() {
 
 	})
 
+	Describe("ModifyArray", func() {
+		var err error
+		var funcExecuted bool
+		JustBeforeEach(func() {
+			funcExecuted = false
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					return m.ModifyArray(0, func(m modifier.ArrayWriter) error {
+						funcExecuted = true
+						return nil
+					})
+				})
+			})
+		})
+
+		Context("When array with the index does not exist", func() {
+			It("Should return modifier.ErrIndexOutOfBounds error", func() {
+				Expect(err).To(Equal(modifier.ErrIndexOutOfBounds))
+			})
+		})
+
+		Context("When element is not an array", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should return modifier.ErrNotArray", func() {
+				Expect(err).To(Equal(modifier.ErrNotArray))
+			})
+		})
+
+		Context("When element is an array", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependArray(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should not return an error", func() {
+				Expect(err).To(Succeed())
+			})
+			It("Should execute the passed function", func() {
+				Expect(funcExecuted).To(BeTrue())
+			})
+		})
+
+	})
+
 })
