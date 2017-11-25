@@ -49,13 +49,13 @@ type MapReader interface {
 type ArrayWriter interface {
 	ArrayReader
 
-	PrependArray(f func(m ArrayWriter) error) (uint64, error)
+	PrependArray(f func(m ArrayWriter) error) error
 	ModifyArray(index uint64, f func(m ArrayWriter) error) error
 
-	PrependMap(f func(m MapWriter) error) (uint64, error)
+	PrependMap(f func(m MapWriter) error) error
 	ModifyMap(index uint64, f func(m MapWriter) error) error
 
-	PrependData(f func(w io.Writer) error) (uint64, error)
+	PrependData(f func(w io.Writer) error) error
 	SetData(index uint64, f func(w io.Writer) error) error
 
 	// DeleteFirst() error

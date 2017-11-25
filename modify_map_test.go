@@ -532,8 +532,7 @@ var _ = Describe("Modify Map", func() {
 		JustBeforeEach(func() {
 			err = i.Transaction(func(m modifier.MapWriter) error {
 				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
-					_, e := m.PrependMap(nil)
-					return e
+					return m.PrependMap(nil)
 				})
 			})
 		})

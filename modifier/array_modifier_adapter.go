@@ -57,9 +57,18 @@ func (m *ArrayModifierAdapter) InArray(index uint64, f func(ctx ArrayReader) err
 }
 
 func (m *ArrayModifierAdapter) ReadData(index uint64, f func(r io.Reader) error) error {
+
+	if index >= m.Size() {
+		return ErrIndexOutOfBounds
+	}
+
 	newPath := m.path.Append(index)
 	if !m.m.Exists(newPath) {
 		return ErrKeyDoesNotExist
+	}
+
+	if m.m.EntityReaderFor(newPath).Type() != Data {
+		return ErrNotData
 	}
 
 	return f(m.m.EntityReaderFor(newPath).Data())
@@ -85,34 +94,31 @@ func (m *ArrayModifierAdapter) Size() uint64 {
 	return m.m.EntityReaderFor(m.path).Size()
 }
 
-func (m *ArrayModifierAdapter) PrependArray(f func(ctx ArrayWriter) error) (uint64, error) {
-	oldSize := m.m.EntityReaderFor(m.path).Size()
+func (m *ArrayModifierAdapter) PrependArray(f func(ctx ArrayWriter) error) error {
 	newPath := m.path.Append(uint64(0))
-	return oldSize + 1, m.m.CreateArray(newPath)
+	return m.m.CreateArray(newPath)
 }
 
 func (m *ArrayModifierAdapter) ModifyArray(index uint64, f func(ctx ArrayWriter) error) error {
 	return errors.New("Not supported")
 }
 
-func (m *ArrayModifierAdapter) PrependMap(f func(ctx MapWriter) error) (uint64, error) {
-	oldSize := m.m.EntityReaderFor(m.path).Size()
+func (m *ArrayModifierAdapter) PrependMap(f func(ctx MapWriter) error) error {
 	newPath := m.path.Append(0)
-	return oldSize + 1, m.m.CreateMap(newPath)
+	return m.m.CreateMap(newPath)
 }
 
 func (m *ArrayModifierAdapter) ModifyMap(index uint64, f func(ctx MapWriter) error) error {
 	return errors.New("Not supported")
 }
 
-func (m *ArrayModifierAdapter) PrependData(f func(w io.Writer) error) (uint64, error) {
+func (m *ArrayModifierAdapter) PrependData(f func(w io.Writer) error) error {
 	newPath := m.path.Append(0)
 	err := m.m.CreateData(newPath, f)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	size := m.m.EntityReaderFor(m.path).Size()
-	return size, nil
+	return nil
 }
 
 func (m *ArrayModifierAdapter) SetData(index uint64, f func(w io.Writer) error) error {

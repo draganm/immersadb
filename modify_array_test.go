@@ -1,6 +1,7 @@
 package immersadb_test
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -63,8 +64,7 @@ var _ = Describe("Modify Array", func() {
 			BeforeEach(func() {
 				Expect(i.Transaction(func(m modifier.MapWriter) error {
 					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
-						_, e := m.PrependMap(nil)
-						return e
+						return m.PrependMap(nil)
 					})
 				})).To(Succeed())
 			})
@@ -80,8 +80,7 @@ var _ = Describe("Modify Array", func() {
 			BeforeEach(func() {
 				Expect(i.Transaction(func(m modifier.MapWriter) error {
 					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
-						_, e := m.PrependArray(nil)
-						return e
+						return m.PrependArray(nil)
 					})
 				})).To(Succeed())
 			})
@@ -129,8 +128,7 @@ var _ = Describe("Modify Array", func() {
 			BeforeEach(func() {
 				Expect(i.Transaction(func(m modifier.MapWriter) error {
 					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
-						_, e := m.PrependArray(nil)
-						return e
+						return m.PrependArray(nil)
 					})
 				})).To(Succeed())
 			})
@@ -146,8 +144,7 @@ var _ = Describe("Modify Array", func() {
 			BeforeEach(func() {
 				Expect(i.Transaction(func(m modifier.MapWriter) error {
 					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
-						_, e := m.PrependMap(nil)
-						return e
+						return m.PrependMap(nil)
 					})
 				})).To(Succeed())
 			})
@@ -159,5 +156,71 @@ var _ = Describe("Modify Array", func() {
 			})
 		})
 
+	})
+
+	Describe("ReadData", func() {
+		BeforeEach(func() {
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.CreateArray("test", nil)
+			})).To(Succeed())
+		})
+
+		var err error
+		var read []byte
+		JustBeforeEach(func() {
+			read = nil
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.InArray("test", func(m modifier.ArrayReader) error {
+					return m.ReadData(0, func(r io.Reader) error {
+						rr, e := ioutil.ReadAll(r)
+						read = rr
+						return e
+					})
+				})
+			})
+		})
+
+		Context("When array does not contain the index", func() {
+			It("Should return modifier.ErrIndexOutOfBounds error", func() {
+				Expect(err).To(Equal(modifier.ErrIndexOutOfBounds))
+			})
+		})
+
+		Context("When the value is not of the type data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+			})
+
+			It("Should return modifier.ErrNotData error", func() {
+				Expect(err).To(Equal(modifier.ErrNotData))
+			})
+
+		})
+
+		Context("When the value is of the type data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependData(func(w io.Writer) error {
+							_, e := w.Write([]byte{1, 2, 3})
+							return e
+						})
+					})
+				})).To(Succeed())
+			})
+
+			It("Should not return error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should read the data", func() {
+				Expect(read).To(Equal([]byte{1, 2, 3}))
+			})
+
+		})
 	})
 })
