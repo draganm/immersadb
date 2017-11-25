@@ -158,7 +158,7 @@ func (m *ArrayModifierAdapter) ModifyMap(index uint64, f func(ctx MapWriter) err
 }
 
 func (m *ArrayModifierAdapter) PrependData(f func(w io.Writer) error) error {
-	newPath := m.path.Append(0)
+	newPath := m.path.Append(uint64(0))
 	err := m.m.CreateData(newPath, f)
 	if err != nil {
 		return err
@@ -167,7 +167,17 @@ func (m *ArrayModifierAdapter) PrependData(f func(w io.Writer) error) error {
 }
 
 func (m *ArrayModifierAdapter) SetData(index uint64, f func(w io.Writer) error) error {
-	return errors.New("Not supported")
+	if index >= m.Size() {
+		return ErrIndexOutOfBounds
+	}
+
+	if f == nil {
+		return nil
+	}
+	newPath := m.path.Append(index)
+
+	return m.m.CreateData(newPath, f)
+
 }
 
 func (m *ArrayModifierAdapter) DeleteLast() error {

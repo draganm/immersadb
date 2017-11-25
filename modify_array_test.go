@@ -645,4 +645,77 @@ var _ = Describe("Modify Array", func() {
 
 	})
 
+	Describe("SetData", func() {
+		var err error
+		var funcExecuted bool
+		JustBeforeEach(func() {
+			funcExecuted = false
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					return m.SetData(0, func(w io.Writer) error {
+						_, e := w.Write([]byte{1, 2, 3})
+						return e
+					})
+				})
+			})
+		})
+
+		Context("When element with the index does not exist", func() {
+			It("Should return modifier.ErrIndexOutOfBounds error", func() {
+				Expect(err).To(Equal(modifier.ErrIndexOutOfBounds))
+			})
+		})
+
+		Context("When element is not data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependArray(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should change the type to data", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Type(0)).To(Equal(modifier.Data))
+						return nil
+					})
+				})).To(Succeed())
+			})
+
+		})
+
+		Context("When element is data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependData(func(w io.Writer) error {
+							_, e := w.Write([]byte{3, 2, 1})
+							return e
+						})
+					})
+				})).To(Succeed())
+			})
+			It("Should not return an error", func() {
+				Expect(err).To(Succeed())
+			})
+			It("Should change the data", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						return m.ReadData(0, func(r io.Reader) error {
+							d, e := ioutil.ReadAll(r)
+							Expect(d).To(Equal([]byte{1, 2, 3}))
+							return e
+						})
+					})
+				})).To(Succeed())
+			})
+		})
+
+	})
+
 })

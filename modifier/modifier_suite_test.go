@@ -237,7 +237,7 @@ var _ = Describe("Modifier", func() {
 			})
 			Context("When I append a value to the array head", func() {
 				BeforeEach(func() {
-					err = m.CreateData(dbpath.Path{"l1", 0}, func(w io.Writer) error {
+					err = m.CreateData(dbpath.Path{"l1", uint64(0)}, func(w io.Writer) error {
 						_, e := w.Write([]byte("test-test-test"))
 						return e
 					})
@@ -266,7 +266,7 @@ var _ = Describe("Modifier", func() {
 				})
 				Context("When I append another value to the array head", func() {
 					BeforeEach(func() {
-						err = m.CreateData(dbpath.Path{"l1", 0}, func(w io.Writer) error {
+						err = m.CreateData(dbpath.Path{"l1", uint64(0)}, func(w io.Writer) error {
 							_, e := w.Write([]byte("test-test-test2"))
 							return e
 						})

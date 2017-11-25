@@ -204,8 +204,8 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 			}
 			vm.RootAddress = newRoot
 			return nil
-		case int, uint64:
-			idx := last.(int)
+		case uint64:
+			idx := last.(uint64)
 			if idx != 0 {
 				return errors.New("Only append to array head is supported")
 			}
