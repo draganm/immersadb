@@ -84,12 +84,14 @@ func (m *ArrayModifierAdapter) ForEachAfter(index uint64, f func(index uint64, t
 	return errors.New("Not supported")
 }
 
-func (m *ArrayModifierAdapter) HasKey(index uint64) bool {
-	return false
-}
-
 func (m *ArrayModifierAdapter) Type(index uint64) EntityType {
-	return m.m.EntityReaderFor(m.path.Append(index)).Type()
+	newPath := m.path.Append(index)
+
+	if !m.m.Exists(newPath) {
+		return Unknown
+	}
+
+	return m.m.EntityReaderFor(newPath).Type()
 }
 
 func (m *ArrayModifierAdapter) Size() uint64 {
