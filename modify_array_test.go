@@ -495,4 +495,57 @@ var _ = Describe("Modify Array", func() {
 
 	})
 
+	Describe("PrependMap", func() {
+		var funcExecuted bool
+		JustBeforeEach(func() {
+			funcExecuted = false
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					return m.PrependMap(func(m modifier.MapWriter) error {
+						funcExecuted = true
+						return nil
+					})
+				})
+			})).To(Succeed())
+		})
+
+		Context("When array is empty", func() {
+			It("Should execute the passed function", func() {
+				Expect(funcExecuted).To(BeTrue())
+			})
+			It("Should prepend value of type Map", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(1)))
+						Expect(m.Type(0)).To(Equal(modifier.Map))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+
+		Context("When array has one element", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependArray(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should execute the passed function", func() {
+				Expect(funcExecuted).To(BeTrue())
+			})
+			It("Should prepend value of type Map", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(2)))
+						Expect(m.Type(0)).To(Equal(modifier.Map))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+
+	})
+
 })

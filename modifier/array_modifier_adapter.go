@@ -129,8 +129,15 @@ func (m *ArrayModifierAdapter) ModifyArray(index uint64, f func(ctx ArrayWriter)
 }
 
 func (m *ArrayModifierAdapter) PrependMap(f func(ctx MapWriter) error) error {
-	newPath := m.path.Append(0)
-	return m.m.CreateMap(newPath)
+	newPath := m.path.Append(uint64(0))
+	err := m.m.CreateMap(newPath)
+	if err != nil {
+		return err
+	}
+	if f == nil {
+		return nil
+	}
+	return f(&MapModifierAdapter{m.m, newPath})
 }
 
 func (m *ArrayModifierAdapter) ModifyMap(index uint64, f func(ctx MapWriter) error) error {

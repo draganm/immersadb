@@ -109,8 +109,8 @@ func (m *Modifier) CreateMap(path dbpath.Path) error {
 
 			vm.RootAddress = newRoot
 			return nil
-		case int:
-			idx := last.(int)
+		case uint64:
+			idx := last.(uint64)
 
 			if idx != 0 {
 				return errors.New("Can only append to the head of the array")
