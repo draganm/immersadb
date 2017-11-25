@@ -182,6 +182,9 @@ func (m *ArrayModifierAdapter) SetData(index uint64, f func(w io.Writer) error) 
 
 func (m *ArrayModifierAdapter) DeleteLast() error {
 	size := m.m.EntityReaderFor(m.path).Size()
+	if size == 0 {
+		return ErrArrayEmpty
+	}
 	newPath := m.path.Append(size - 1)
 	return m.m.Delete(newPath)
 }

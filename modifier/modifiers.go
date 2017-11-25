@@ -22,6 +22,7 @@ var ErrKeyDoesNotExist = errors.New("Key does not exist")
 var ErrKeyAlreadyExists = errors.New("Key already exists")
 
 var ErrIndexOutOfBounds = errors.New("Index out of bounds")
+var ErrArrayEmpty = errors.New("Array is empty")
 
 type ArrayReader interface {
 	InArray(index uint64, f func(m ArrayReader) error) error

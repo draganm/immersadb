@@ -718,4 +718,43 @@ var _ = Describe("Modify Array", func() {
 
 	})
 
+	Describe("DeleteLast", func() {
+		var err error
+		JustBeforeEach(func() {
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					return m.DeleteLast()
+				})
+			})
+		})
+		Context("When array is empty", func() {
+			It("Should return modifier.ErrArrayEmpty error", func() {
+				Expect(err).To(Equal(modifier.ErrArrayEmpty))
+			})
+		})
+		Context("When array is not empty", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+			})
+
+			It("Should not return error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("Should remove last value", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(0)))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+
+	})
+
 })
