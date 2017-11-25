@@ -757,4 +757,42 @@ var _ = Describe("Modify Array", func() {
 
 	})
 
+	Describe("DeleteAll", func() {
+		JustBeforeEach(func() {
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					return m.DeleteAll()
+				})
+			})).To(Succeed())
+		})
+
+		Context("When array is empty", func() {
+			It("Should keep the array empty", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(0)))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+		Context("When array is not empty", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should clear all values for the array", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(0)))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+	})
+
 })

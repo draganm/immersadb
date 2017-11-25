@@ -190,5 +190,5 @@ func (m *ArrayModifierAdapter) DeleteLast() error {
 }
 
 func (m *ArrayModifierAdapter) DeleteAll() error {
-	return errors.New("Not supported")
+	return m.m.CreateArray(m.path)
 }
