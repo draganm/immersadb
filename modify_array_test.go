@@ -30,12 +30,14 @@ var _ = Describe("Modify Array", func() {
 		}
 	})
 
+	BeforeEach(func() {
+		Expect(i.Transaction(func(m modifier.MapWriter) error {
+			return m.CreateArray("test", nil)
+		})).To(Succeed())
+	})
+
 	Describe("InMap", func() {
-		BeforeEach(func() {
-			Expect(i.Transaction(func(m modifier.MapWriter) error {
-				return m.CreateArray("test", nil)
-			})).To(Succeed())
-		})
+
 		var err error
 		var executed bool
 		JustBeforeEach(func() {
@@ -95,11 +97,7 @@ var _ = Describe("Modify Array", func() {
 	})
 
 	Describe("InArray", func() {
-		BeforeEach(func() {
-			Expect(i.Transaction(func(m modifier.MapWriter) error {
-				return m.CreateArray("test", nil)
-			})).To(Succeed())
-		})
+
 		var err error
 		var executed bool
 		JustBeforeEach(func() {
@@ -159,11 +157,6 @@ var _ = Describe("Modify Array", func() {
 	})
 
 	Describe("ReadData", func() {
-		BeforeEach(func() {
-			Expect(i.Transaction(func(m modifier.MapWriter) error {
-				return m.CreateArray("test", nil)
-			})).To(Succeed())
-		})
 
 		var err error
 		var read []byte
@@ -225,11 +218,6 @@ var _ = Describe("Modify Array", func() {
 	})
 
 	Describe("ForEach", func() {
-		BeforeEach(func() {
-			Expect(i.Transaction(func(m modifier.MapWriter) error {
-				return m.CreateArray("test", nil)
-			})).To(Succeed())
-		})
 
 		var err error
 		type indexAndType struct {
@@ -316,11 +304,6 @@ var _ = Describe("Modify Array", func() {
 
 	Describe("Type", func() {
 		var t modifier.EntityType
-		BeforeEach(func() {
-			Expect(i.Transaction(func(m modifier.MapWriter) error {
-				return m.CreateArray("test", nil)
-			})).To(Succeed())
-		})
 
 		JustBeforeEach(func() {
 			Expect(i.Transaction(func(m modifier.MapWriter) error {
@@ -379,12 +362,6 @@ var _ = Describe("Modify Array", func() {
 
 	Describe("Size", func() {
 
-		BeforeEach(func() {
-			Expect(i.Transaction(func(m modifier.MapWriter) error {
-				return m.CreateArray("test", nil)
-			})).To(Succeed())
-		})
-
 		var s uint64
 		JustBeforeEach(func() {
 			Expect(i.Transaction(func(m modifier.MapWriter) error {
@@ -412,6 +389,58 @@ var _ = Describe("Modify Array", func() {
 				Expect(s).To(Equal(uint64(1)))
 			})
 		})
+	})
+	Describe("PrependArray", func() {
+		var funcExecuted bool
+		JustBeforeEach(func() {
+			funcExecuted = false
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+					return m.PrependArray(func(m modifier.ArrayWriter) error {
+						funcExecuted = true
+						return nil
+					})
+				})
+			})).To(Succeed())
+		})
+
+		Context("When array is empty", func() {
+			It("Should execute the passed function", func() {
+				Expect(funcExecuted).To(BeTrue())
+			})
+			It("Should prepend value of type Array", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(1)))
+						Expect(m.Type(0)).To(Equal(modifier.Array))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+
+		Context("When array has one element", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+			})
+			It("Should execute the passed function", func() {
+				Expect(funcExecuted).To(BeTrue())
+			})
+			It("Should prepend value of type Array", func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.InArray("test", func(m modifier.ArrayReader) error {
+						Expect(m.Size()).To(Equal(uint64(2)))
+						Expect(m.Type(0)).To(Equal(modifier.Array))
+						return nil
+					})
+				})).To(Succeed())
+			})
+		})
+
 	})
 
 })

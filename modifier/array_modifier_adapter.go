@@ -100,7 +100,14 @@ func (m *ArrayModifierAdapter) Size() uint64 {
 
 func (m *ArrayModifierAdapter) PrependArray(f func(ctx ArrayWriter) error) error {
 	newPath := m.path.Append(uint64(0))
-	return m.m.CreateArray(newPath)
+	err := m.m.CreateArray(newPath)
+	if err != nil {
+		return err
+	}
+	if f == nil {
+		return nil
+	}
+	return f(&ArrayModifierAdapter{m.m, newPath})
 }
 
 func (m *ArrayModifierAdapter) ModifyArray(index uint64, f func(ctx ArrayWriter) error) error {
