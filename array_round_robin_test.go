@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/draganm/immersadb"
-	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,18 +57,21 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 				var elements []int
 				JustBeforeEach(func() {
 					elements = nil
-					err := i.ReadTransaction(func(er modifier.EntityReader) error {
-						ser := er.EntityReaderFor(dbpath.Path{"ar"})
-						return ser.ForEachArrayElement(func(index uint64, reader modifier.EntityReader) error {
-							var el int
-							r := reader.Data()
-							err = msgpack.NewDecoder(r).Decode(&el)
-							if err != nil {
-								return err
-							}
-							elements = append(elements, el)
-							return nil
+					err := i.ReadTransaction(func(m modifier.MapReader) error {
+						return m.InArray("ar", func(m modifier.ArrayReader) error {
+							return m.ForEach(func(index uint64, t modifier.EntityType) error {
+								var el int
+								err = m.ReadData(index, func(r io.Reader) error {
+									return msgpack.NewDecoder(r).Decode(&el)
+								})
+								if err != nil {
+									return err
+								}
+								elements = append(elements, el)
+								return nil
+							})
 						})
+
 					})
 					Expect(err).ToNot(HaveOccurred())
 				})
@@ -110,12 +112,12 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 					})
 					It("Should have Size 4", func() {
 						var size uint64
-						err := i.ReadTransaction(func(er modifier.EntityReader) error {
-							ser := er.EntityReaderFor(dbpath.Path{"ar"})
-							size = ser.Size()
-							return nil
-						})
-						Expect(err).ToNot(HaveOccurred())
+						Expect(i.ReadTransaction(func(m modifier.MapReader) error {
+							return m.InArray("ar", func(m modifier.ArrayReader) error {
+								size = m.Size()
+								return nil
+							})
+						})).To(Succeed())
 						Expect(size).To(Equal(uint64(5)))
 					})
 

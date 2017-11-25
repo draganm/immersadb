@@ -124,13 +124,21 @@ func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	return nil
 }
 
-func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
+func (i *ImmersaDB) ReadTransaction(t func(modifier.MapReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
 	return i.readTransaction(t)
 }
 
-func (i *ImmersaDB) readTransaction(t func(modifier.EntityReader) error) error {
+func (i *ImmersaDB) readTransaction(t func(modifier.MapReader) error) error {
+	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
+	m := modifier.New(i.store, chunkSize, refs[0])
+	mm := modifier.NewMapModifierAdapter(m)
+
+	return t(mm)
+}
+
+func (i *ImmersaDB) readTransactionOld(t func(modifier.EntityReader) error) error {
 	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
 	m := modifier.New(i.store, chunkSize, refs[0])
 	return t(m)
@@ -201,7 +209,7 @@ func (i *ImmersaDB) RemoveListener(matcher dbpath.Path, f Listener) {
 }
 
 func (ls *listenerState) checkForChange(i *ImmersaDB) {
-	i.readTransaction(func(r modifier.EntityReader) error {
+	i.readTransactionOld(func(r modifier.EntityReader) error {
 		if r.Exists(ls.matcher) {
 			re := r.EntityReaderFor(ls.matcher)
 			addr := re.Address()

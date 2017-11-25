@@ -160,8 +160,8 @@ var _ = Describe("ImmersaDB", func() {
 			Context("When I get the size of the root", func() {
 				var s uint64
 				BeforeEach(func() {
-					i.ReadTransaction(func(r modifier.EntityReader) error {
-						s = r.Size()
+					i.ReadTransaction(func(m modifier.MapReader) error {
+						s = m.Size()
 						return nil
 					})
 				})
@@ -181,8 +181,8 @@ var _ = Describe("ImmersaDB", func() {
 			Context("When I get the size of the root", func() {
 				var s uint64
 				BeforeEach(func() {
-					i.ReadTransaction(func(r modifier.EntityReader) error {
-						s = r.Size()
+					i.ReadTransaction(func(m modifier.MapReader) error {
+						s = m.Size()
 						return nil
 					})
 				})
