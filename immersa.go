@@ -130,6 +130,12 @@ func (i *ImmersaDB) ReadTransaction(t func(modifier.MapReader) error) error {
 	return i.readTransaction(t)
 }
 
+func (i *ImmersaDB) ReadTransactionOld(t func(modifier.EntityReader) error) error {
+	i.RLock()
+	defer i.RUnlock()
+	return i.readTransactionOld(t)
+}
+
 func (i *ImmersaDB) readTransaction(t func(modifier.MapReader) error) error {
 	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
 	m := modifier.New(i.store, chunkSize, refs[0])
