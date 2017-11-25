@@ -1,9 +1,8 @@
-package gc_test
+package store_test
 
 import (
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/dbpath"
-	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
@@ -30,7 +29,7 @@ var _ = Describe("Evacuate", func() {
 
 		Context("When I evacuate everything before the last commit", func() {
 			BeforeEach(func() {
-				err = gc.Evacuate(s, s.NextChunkAddress())
+				err = store.Evacuate(s, s.NextChunkAddress())
 			})
 			It("Should not return error", func() {
 				Expect(err).ToNot(HaveOccurred())
@@ -60,7 +59,7 @@ var _ = Describe("Evacuate", func() {
 
 		Context("When I evacuate only the last commit", func() {
 			BeforeEach(func() {
-				err = gc.Evacuate(s, s.NextChunkAddress()-chunk.CommitChunkSize)
+				err = store.Evacuate(s, s.NextChunkAddress()-chunk.CommitChunkSize)
 			})
 			It("Should not return error", func() {
 				Expect(err).ToNot(HaveOccurred())
@@ -104,7 +103,7 @@ var _ = Describe("Evacuate", func() {
 				var oldLength int
 				BeforeEach(func() {
 					oldLength = len(s.Data())
-					err = gc.Evacuate(s, s.NextChunkAddress()-chunk.CommitChunkSize)
+					err = store.Evacuate(s, s.NextChunkAddress()-chunk.CommitChunkSize)
 				})
 
 				XIt("Should evacuate only referenced values", func() {

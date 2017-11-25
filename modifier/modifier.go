@@ -109,8 +109,8 @@ func (m *Modifier) CreateMap(path dbpath.Path) error {
 
 			vm.RootAddress = newRoot
 			return nil
-		case int:
-			idx := last.(int)
+		case uint64:
+			idx := last.(uint64)
 
 			if idx != 0 {
 				return errors.New("Can only append to the head of the array")
@@ -157,8 +157,23 @@ func (m *Modifier) CreateArray(path dbpath.Path) error {
 
 			vm.RootAddress = newRoot
 			return nil
+		case uint64:
+			valueAddr, err := vm.createEmptyArrayLeaf()
+			if err != nil {
+				return err
+			}
+
+			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
+			if err != nil {
+				return err
+			}
+
+			vm.RootAddress = newRoot
+
+			return nil
+
 		default:
-			panic("not yet implemented")
+			panic(fmt.Sprintf("not yet implemented: %v", last))
 		}
 	})
 
@@ -189,8 +204,8 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 			}
 			vm.RootAddress = newRoot
 			return nil
-		case int:
-			idx := last.(int)
+		case uint64:
+			idx := last.(uint64)
 			if idx != 0 {
 				return errors.New("Only append to array head is supported")
 			}
@@ -215,7 +230,7 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 
 			return nil
 		default:
-			panic("not yet implemented")
+			panic(fmt.Errorf("not yet implemented %#v", last))
 		}
 
 	})
@@ -238,9 +253,9 @@ func (m *Modifier) lookupAddress(path dbpath.Path, from uint64) (uint64, error) 
 			}
 
 			from = address
-		case int:
+		case uint64:
 			var err error
-			from, err = m.lookupArray(from, uint64(path[0].(int)))
+			from, err = m.lookupArray(from, path[0].(uint64))
 			if err != nil {
 				return 0, err
 			}
@@ -338,6 +353,17 @@ func (m *Modifier) EntityReaderFor(path dbpath.Path) EntityReader {
 	return New(m.Store, m.chunkSize, addr)
 }
 
+func (m *Modifier) clearMap(path dbpath.Path) error {
+	return m.modify(path[:len(path)], func(mm *Modifier) error {
+		rootAddres, err := ttfmap.CreateEmpty(m.Store)
+		if err != nil {
+			return err
+		}
+		mm.RootAddress = rootAddres
+		return nil
+	})
+}
+
 func (m *Modifier) Delete(path dbpath.Path) error {
 	lastElement := path[len(path)-1]
 	return m.modify(path[:len(path)-1], func(mm *Modifier) error {
@@ -349,8 +375,8 @@ func (m *Modifier) Delete(path dbpath.Path) error {
 			}
 			mm.RootAddress = addr
 			return nil
-		case int:
-			addr, err := m.deleteFromArray(mm.RootAddress, uint64(lastElement.(int)))
+		case uint64:
+			addr, err := m.deleteFromArray(mm.RootAddress, lastElement.(uint64))
 			if err != nil {
 				return err
 			}

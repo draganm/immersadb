@@ -63,7 +63,7 @@ func Browser(addr string, db *immersadb.ImmersaDB) *http.Server {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		name := r.URL.Path
 
-		err := db.ReadTransaction(func(r modifier.EntityReader) error {
+		err := db.ReadTransactionOld(func(r modifier.EntityReader) error {
 			parts := strings.Split(name, "/")
 			path := dbpath.Path{}
 			for _, p := range parts {

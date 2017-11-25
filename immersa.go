@@ -8,7 +8,6 @@ import (
 
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/dbpath"
-	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/graph"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
@@ -22,15 +21,14 @@ var ErrCouldNotRecover = errors.New("Could not recover: Can't find any commit ch
 // ImmersaDB represents an instance of the database.
 type ImmersaDB struct {
 	sync.RWMutex
-	store       *store.SegmentedStore
-	segmentSize int
-	listeners   []*listenerState
+	store     *store.GCStore
+	listeners []*listenerState
 }
 
 // New creates a new instance of ImmersaDB.
-func New(path string, segmentSize int) (*ImmersaDB, error) {
+func New(path string) (*ImmersaDB, error) {
 
-	s, err := store.NewSegmentedStore(path, segmentSize)
+	s, err := store.NewGCStore(path)
 	if err != nil {
 		log.Println(err)
 
@@ -81,8 +79,7 @@ func New(path string, segmentSize int) (*ImmersaDB, error) {
 	}
 
 	return &ImmersaDB{
-		store:       s,
-		segmentSize: segmentSize,
+		store: s,
 	}, nil
 }
 
@@ -90,7 +87,13 @@ func (i *ImmersaDB) DumpGraph() {
 	graph.DumpGraph(i.store, i.store.NextChunkAddress()-chunk.CommitChunkSize)
 }
 
-func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
+func (i *ImmersaDB) Close() error {
+	i.Lock()
+	defer i.Unlock()
+	return i.store.Close()
+}
+
+func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	i.Lock()
 	defer i.Unlock()
 
@@ -99,14 +102,24 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 	_, refs, _ := chunk.Parts(cs.Chunk(cs.NextChunkAddress() - chunk.CommitChunkSize))
 
 	m := modifier.New(cs, chunkSize, refs[0])
-	err := t(m)
+	mm := modifier.NewMapModifierAdapter(m)
+	err := t(mm)
 	if err != nil {
 		return err
 	}
 
-	cs.Append(chunk.NewCommitChunk(m.RootAddress))
+	_, err = cs.Append(chunk.NewCommitChunk(m.RootAddress))
+	if err != nil {
+		return err
+	}
 
 	err = cs.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = i.store.GC()
+
 	if err != nil {
 		return err
 	}
@@ -117,33 +130,27 @@ func (i *ImmersaDB) Transaction(t func(modifier.EntityWriter) error) error {
 	return nil
 }
 
-func (i *ImmersaDB) ReadTransaction(t func(modifier.EntityReader) error) error {
+func (i *ImmersaDB) ReadTransaction(m func(modifier.MapReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
-	return i.readTransaction(t)
+	return i.readTransaction(m)
 }
 
-func (i *ImmersaDB) GC() error {
-	i.Lock()
-	defer i.Unlock()
-
-	realSize := gc.Size(i.store)
-	beg := i.store.NextChunkAddress() - realSize
-
-	err := gc.Evacuate(i.store, beg)
-	if err != nil {
-		return err
-	}
-	err = i.store.DropBefore(beg)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
+func (i *ImmersaDB) ReadTransactionOld(t func(modifier.EntityReader) error) error {
+	i.RLock()
+	defer i.RUnlock()
+	return i.readTransactionOld(t)
 }
 
-func (i *ImmersaDB) readTransaction(t func(modifier.EntityReader) error) error {
+func (i *ImmersaDB) readTransaction(t func(modifier.MapReader) error) error {
+	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
+	m := modifier.New(i.store, chunkSize, refs[0])
+	mm := modifier.NewMapModifierAdapter(m)
+
+	return t(mm)
+}
+
+func (i *ImmersaDB) readTransactionOld(t func(modifier.EntityReader) error) error {
 	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
 	m := modifier.New(i.store, chunkSize, refs[0])
 	return t(m)
@@ -214,7 +221,7 @@ func (i *ImmersaDB) RemoveListener(matcher dbpath.Path, f Listener) {
 }
 
 func (ls *listenerState) checkForChange(i *ImmersaDB) {
-	i.readTransaction(func(r modifier.EntityReader) error {
+	i.readTransactionOld(func(r modifier.EntityReader) error {
 		if r.Exists(ls.matcher) {
 			re := r.EntityReaderFor(ls.matcher)
 			addr := re.Address()

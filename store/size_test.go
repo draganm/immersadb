@@ -1,9 +1,8 @@
-package gc_test
+package store_test
 
 import (
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/dbpath"
-	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
@@ -20,7 +19,7 @@ var _ = Describe("Size", func() {
 	})
 
 	JustBeforeEach(func() {
-		size = gc.Size(s)
+		size = store.Size(s)
 	})
 
 	Context("When storage contains an empty hash", func() {
@@ -38,7 +37,7 @@ var _ = Describe("Size", func() {
 
 		Context("When I add a value to the hash", func() {
 			BeforeEach(func() {
-				m := modifier.New(s, 1024, chunk.LastCommitRootHashAddress(s))
+				m := modifier.New(s, 1024, store.LastCommitRootHashAddress(s))
 				Expect(m.CreateArray(dbpath.Path{"test"})).To(Succeed())
 				_, err := s.Append(chunk.NewCommitChunk(m.RootAddress))
 				Expect(err).ToNot(HaveOccurred())

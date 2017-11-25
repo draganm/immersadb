@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/draganm/immersadb"
-	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/modifier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +21,7 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 	BeforeEach(func() {
 		dir, err = ioutil.TempDir("", "")
 		Expect(err).ToNot(HaveOccurred())
-		i, err = immersadb.New(dir, 128*1024)
+		i, err = immersadb.New(dir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -34,17 +33,20 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 
 	Context("When I create an array", func() {
 		BeforeEach(func() {
-			err := i.Transaction(func(m modifier.EntityWriter) error {
-				return m.CreateArray(dbpath.Path{"ar"})
+			err := i.Transaction(func(m modifier.MapWriter) error {
+				return m.CreateArray("ar", nil)
+
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})
 		Context("When I prepend 5 values to the array in 5 transactions", func() {
 			BeforeEach(func() {
 				for j := 0; j < 5; j++ {
-					err := i.Transaction(func(m modifier.EntityWriter) error {
-						return m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
-							return msgpack.NewEncoder(w).Encode(j)
+					err := i.Transaction(func(m modifier.MapWriter) error {
+						return m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+							return m.PrependData(func(w io.Writer) error {
+								return msgpack.NewEncoder(w).Encode(j)
+							})
 						})
 					})
 					Expect(err).ToNot(HaveOccurred())
@@ -55,18 +57,21 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 				var elements []int
 				JustBeforeEach(func() {
 					elements = nil
-					err := i.ReadTransaction(func(er modifier.EntityReader) error {
-						ser := er.EntityReaderFor(dbpath.Path{"ar"})
-						return ser.ForEachArrayElement(func(index uint64, reader modifier.EntityReader) error {
-							var el int
-							r := reader.Data()
-							err = msgpack.NewDecoder(r).Decode(&el)
-							if err != nil {
-								return err
-							}
-							elements = append(elements, el)
-							return nil
+					err := i.ReadTransaction(func(m modifier.MapReader) error {
+						return m.InArray("ar", func(m modifier.ArrayReader) error {
+							return m.ForEach(func(index uint64, t modifier.EntityType) error {
+								var el int
+								err = m.ReadData(index, func(r io.Reader) error {
+									return msgpack.NewDecoder(r).Decode(&el)
+								})
+								if err != nil {
+									return err
+								}
+								elements = append(elements, el)
+								return nil
+							})
 						})
+
 					})
 					Expect(err).ToNot(HaveOccurred())
 				})
@@ -77,13 +82,22 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 
 				Context("When I prepend new and delete last element", func() {
 					BeforeEach(func() {
-						err := i.Transaction(func(m modifier.EntityWriter) error {
+						err := i.Transaction(func(m modifier.MapWriter) error {
 
-							err := m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
-								return msgpack.NewEncoder(w).Encode(5)
+							err := m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+								return m.PrependData(func(w io.Writer) error {
+									return msgpack.NewEncoder(w).Encode(5)
+								})
 							})
 
-							err = m.Delete(dbpath.Path{"ar", 5})
+							if err != nil {
+								return err
+							}
+
+							err = m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+								return m.DeleteLast()
+							})
+
 							if err != nil {
 								return err
 							}
@@ -98,28 +112,34 @@ var _ = Describe("ImmersaDB: array round robin", func() {
 					})
 					It("Should have Size 4", func() {
 						var size uint64
-						err := i.ReadTransaction(func(er modifier.EntityReader) error {
-							ser := er.EntityReaderFor(dbpath.Path{"ar"})
-							size = ser.Size()
-							return nil
-						})
-						Expect(err).ToNot(HaveOccurred())
+						Expect(i.ReadTransaction(func(m modifier.MapReader) error {
+							return m.InArray("ar", func(m modifier.ArrayReader) error {
+								size = m.Size()
+								return nil
+							})
+						})).To(Succeed())
 						Expect(size).To(Equal(uint64(5)))
 					})
 
 					Context("When I rotate one more element", func() {
 						BeforeEach(func() {
-							err := i.Transaction(func(m modifier.EntityWriter) error {
+							err := i.Transaction(func(m modifier.MapWriter) error {
 
-								err := m.CreateData(dbpath.Path{"ar", 0}, func(w io.Writer) error {
-									return msgpack.NewEncoder(w).Encode(6)
+								err := m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+									return m.PrependData(func(w io.Writer) error {
+										return msgpack.NewEncoder(w).Encode(6)
+									})
 								})
 
 								if err != nil {
 									return err
+
 								}
 
-								err = m.Delete(dbpath.Path{"ar", 5})
+								err = m.ModifyArray("ar", func(m modifier.ArrayWriter) error {
+									return m.DeleteLast()
+								})
+
 								if err != nil {
 									return err
 								}

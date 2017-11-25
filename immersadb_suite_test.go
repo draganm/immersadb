@@ -28,7 +28,7 @@ var _ = Describe("ImmersaDB", func() {
 	BeforeEach(func() {
 		dir, err = ioutil.TempDir("", "")
 		Expect(err).ToNot(HaveOccurred())
-		i, err = immersadb.New(dir, 8*1024)
+		i, err = immersadb.New(dir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -38,45 +38,11 @@ var _ = Describe("ImmersaDB", func() {
 		}
 	})
 
-	Describe("GC", func() {
-		Context("When I create enough garbage to remove the first segment", func() {
-			BeforeEach(func() {
-				for j := 0; j < 180; j++ {
-					err := i.Transaction(func(m modifier.EntityWriter) error {
-						return m.CreateMap(dbpath.Path{"test"})
-					})
-					Expect(err).ToNot(HaveOccurred())
-					err = i.Transaction(func(m modifier.EntityWriter) error {
-						return m.Delete(dbpath.Path{"test"})
-					})
-					Expect(err).ToNot(HaveOccurred())
-				}
-			})
-
-			It("should have two segments in the db dir", func() {
-				entries, err := ioutil.ReadDir(dir)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(entries)).To(Equal(2))
-			})
-
-			Context("When I calll GC", func() {
-				BeforeEach(func() {
-					Expect(i.GC()).To(Succeed())
-				})
-				It("Should remove the first segment", func() {
-					entries, err := ioutil.ReadDir(dir)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(entries)).To(Equal(1))
-				})
-			})
-		})
-	})
-
 	Describe("Transaction", func() {
 		Context("When data value is created", func() {
 			BeforeEach(func() {
-				err = i.Transaction(func(m modifier.EntityWriter) error {
-					return m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
+				err = i.Transaction(func(m modifier.MapWriter) error {
+					return m.SetData("test", func(w io.Writer) error {
 						_, e := w.Write([]byte("test"))
 						return e
 					})
@@ -100,8 +66,8 @@ var _ = Describe("ImmersaDB", func() {
 				})
 				Context("When I change the value", func() {
 					BeforeEach(func() {
-						err = i.Transaction(func(m modifier.EntityWriter) error {
-							return m.CreateData(dbpath.Path{"test"}, func(w io.Writer) error {
+						err = i.Transaction(func(m modifier.MapWriter) error {
+							return m.SetData("test", func(w io.Writer) error {
 								_, e := w.Write([]byte("test123"))
 								return e
 							})
@@ -136,8 +102,10 @@ var _ = Describe("ImmersaDB", func() {
 		})
 		Context("When the value exists", func() {
 			BeforeEach(func() {
-				err := i.Transaction(func(w modifier.EntityWriter) error {
-					return w.CreateMap(dbpath.Path{"test"})
+				err := i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", func(m modifier.MapWriter) error {
+						return nil
+					})
 				})
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -152,8 +120,10 @@ var _ = Describe("ImmersaDB", func() {
 			var called bool
 			var listener func(r modifier.EntityReader)
 			BeforeEach(func() {
-				err := i.Transaction(func(w modifier.EntityWriter) error {
-					return w.CreateMap(dbpath.Path{"test"})
+				err := i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", func(m modifier.MapWriter) error {
+						return nil
+					})
 				})
 				Expect(err).ToNot(HaveOccurred())
 				listener = func(r modifier.EntityReader) {
@@ -169,8 +139,10 @@ var _ = Describe("ImmersaDB", func() {
 				})
 				Context("When I change the value", func() {
 					BeforeEach(func() {
-						err := i.Transaction(func(w modifier.EntityWriter) error {
-							return w.CreateMap(dbpath.Path{"test", "test2"})
+						err := i.Transaction(func(m modifier.MapWriter) error {
+							return m.ModifyMap("test", func(m modifier.MapWriter) error {
+								return m.CreateArray("foo", nil)
+							})
 						})
 						Expect(err).ToNot(HaveOccurred())
 					})
@@ -188,8 +160,8 @@ var _ = Describe("ImmersaDB", func() {
 			Context("When I get the size of the root", func() {
 				var s uint64
 				BeforeEach(func() {
-					i.ReadTransaction(func(r modifier.EntityReader) error {
-						s = r.Size()
+					i.ReadTransaction(func(m modifier.MapReader) error {
+						s = m.Size()
 						return nil
 					})
 				})
@@ -200,15 +172,17 @@ var _ = Describe("ImmersaDB", func() {
 		})
 		Context("When the database has one value", func() {
 			BeforeEach(func() {
-				Expect(i.Transaction(func(w modifier.EntityWriter) error {
-					return w.CreateMap(dbpath.Path{"test"})
-				}))
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", func(m modifier.MapWriter) error {
+						return nil
+					})
+				})).To(Succeed())
 			})
 			Context("When I get the size of the root", func() {
 				var s uint64
 				BeforeEach(func() {
-					i.ReadTransaction(func(r modifier.EntityReader) error {
-						s = r.Size()
+					i.ReadTransaction(func(m modifier.MapReader) error {
+						s = m.Size()
 						return nil
 					})
 				})

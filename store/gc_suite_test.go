@@ -1,9 +1,8 @@
-package gc_test
+package store_test
 
 import (
 	"github.com/draganm/immersadb/chunk"
 	"github.com/draganm/immersadb/dbpath"
-	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/modifier/ttfmap"
 	"github.com/draganm/immersadb/store"
@@ -39,7 +38,7 @@ var _ = Describe("Copy", func() {
 
 		Context("When I copy to the destionation", func() {
 			BeforeEach(func() {
-				err = gc.Copy(source, destination)
+				err = store.Copy(source, destination)
 			})
 			It("Should not return error", func() {
 				Expect(err).ToNot(HaveOccurred())
@@ -60,7 +59,7 @@ var _ = Describe("Copy", func() {
 
 		Context("When I add a new value to the source", func() {
 			BeforeEach(func() {
-				m := modifier.New(source, 1024, chunk.LastCommitRootHashAddress(source))
+				m := modifier.New(source, 1024, store.LastCommitRootHashAddress(source))
 				err = m.CreateMap(dbpath.Path{"test"})
 				Expect(err).ToNot(HaveOccurred())
 				_, err = source.Append(chunk.NewCommitChunk(m.RootAddress))
@@ -68,7 +67,7 @@ var _ = Describe("Copy", func() {
 			})
 			Context("When I copy to the destionation", func() {
 				BeforeEach(func() {
-					err = gc.Copy(source, destination)
+					err = store.Copy(source, destination)
 				})
 				It("Should not return error", func() {
 					Expect(err).ToNot(HaveOccurred())
@@ -95,7 +94,7 @@ var _ = Describe("Copy", func() {
 
 			Context("When I add another level of hash to the source", func() {
 				BeforeEach(func() {
-					m := modifier.New(source, 1024, chunk.LastCommitRootHashAddress(source))
+					m := modifier.New(source, 1024, store.LastCommitRootHashAddress(source))
 					err = m.CreateMap(dbpath.Path{"test", "test2"})
 					Expect(err).ToNot(HaveOccurred())
 					_, err = source.Append(chunk.NewCommitChunk(m.RootAddress))
@@ -103,7 +102,7 @@ var _ = Describe("Copy", func() {
 				})
 				Context("When I copy to the destionation", func() {
 					BeforeEach(func() {
-						err = gc.Copy(source, destination)
+						err = store.Copy(source, destination)
 					})
 					It("Should not return error", func() {
 						Expect(err).ToNot(HaveOccurred())
@@ -136,7 +135,7 @@ var _ = Describe("Copy", func() {
 
 				Context("When I add another hash to the parallel level", func() {
 					BeforeEach(func() {
-						m := modifier.New(source, 1024, chunk.LastCommitRootHashAddress(source))
+						m := modifier.New(source, 1024, store.LastCommitRootHashAddress(source))
 						err = m.CreateMap(dbpath.Path{"test", "test3"})
 						Expect(err).ToNot(HaveOccurred())
 						_, err = source.Append(chunk.NewCommitChunk(m.RootAddress))
@@ -145,7 +144,7 @@ var _ = Describe("Copy", func() {
 					})
 					Context("When I copy to the destionation", func() {
 						BeforeEach(func() {
-							err = gc.Copy(source, destination)
+							err = store.Copy(source, destination)
 						})
 						It("Should not return error", func() {
 							Expect(err).ToNot(HaveOccurred())

@@ -42,7 +42,7 @@ func (m *Modifier) lookupArray(addr, idx uint64) (uint64, error) {
 	t, refs, data := chunk.Parts(m.Chunk(addr))
 	switch t {
 	case chunk.ArrayLeafType:
-		if idx > uint64(len(refs)) {
+		if idx >= uint64(len(refs)) {
 			return 0, ErrNotFound
 		}
 		return refs[int(idx)], nil

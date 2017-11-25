@@ -9,7 +9,6 @@ import (
 	"github.com/draganm/immersadb"
 	"github.com/draganm/immersadb/browser"
 	"github.com/draganm/immersadb/chunk"
-	"github.com/draganm/immersadb/gc"
 	"github.com/draganm/immersadb/store"
 
 	"gopkg.in/urfave/cli.v2"
@@ -27,7 +26,7 @@ func main() {
 					if len(fileName) == 0 {
 						return errors.New("File name not provided")
 					}
-					imdb, err := immersadb.New(fileName, 8192)
+					imdb, err := immersadb.New(fileName)
 					if err != nil {
 						return err
 					}
@@ -42,7 +41,7 @@ func main() {
 					if len(dirName) == 0 {
 						return errors.New("File name not provided")
 					}
-					ss, err := store.NewSegmentedStore(dirName, 10*1024*1024)
+					ss, err := store.NewGCStore(dirName)
 					if err != nil {
 						return err
 					}
@@ -68,7 +67,7 @@ func main() {
 						return err
 					}
 					destination := store.NewMemoryStore(nil)
-					err = gc.Copy(source, destination)
+					err = store.Copy(source, destination)
 					if err != nil {
 						return err
 					}

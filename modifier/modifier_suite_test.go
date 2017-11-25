@@ -32,7 +32,7 @@ var _ = Describe("Modifier", func() {
 
 		_, err = s.Append(chunk.NewCommitChunk(0))
 		Expect(err).ToNot(HaveOccurred())
-		m = modifier.New(s, 8192, chunk.LastCommitRootHashAddress(s))
+		m = modifier.New(s, 8192, store.LastCommitRootHashAddress(s))
 	})
 
 	Describe("Type", func() {
@@ -237,7 +237,7 @@ var _ = Describe("Modifier", func() {
 			})
 			Context("When I append a value to the array head", func() {
 				BeforeEach(func() {
-					err = m.CreateData(dbpath.Path{"l1", 0}, func(w io.Writer) error {
+					err = m.CreateData(dbpath.Path{"l1", uint64(0)}, func(w io.Writer) error {
 						_, e := w.Write([]byte("test-test-test"))
 						return e
 					})
@@ -248,7 +248,7 @@ var _ = Describe("Modifier", func() {
 				Context("When I read the head of the array", func() {
 					var r io.Reader
 					BeforeEach(func() {
-						er := m.EntityReaderFor(dbpath.Path{"l1", 0})
+						er := m.EntityReaderFor(dbpath.Path{"l1", uint64(0)})
 						r = er.Data()
 					})
 					Context("When I read the value", func() {
@@ -266,7 +266,7 @@ var _ = Describe("Modifier", func() {
 				})
 				Context("When I append another value to the array head", func() {
 					BeforeEach(func() {
-						err = m.CreateData(dbpath.Path{"l1", 0}, func(w io.Writer) error {
+						err = m.CreateData(dbpath.Path{"l1", uint64(0)}, func(w io.Writer) error {
 							_, e := w.Write([]byte("test-test-test2"))
 							return e
 						})
@@ -277,7 +277,7 @@ var _ = Describe("Modifier", func() {
 					Context("When I read the head of the array", func() {
 						var r io.Reader
 						BeforeEach(func() {
-							er := m.EntityReaderFor(dbpath.Path{"l1", 0})
+							er := m.EntityReaderFor(dbpath.Path{"l1", uint64(0)})
 							r = er.Data()
 						})
 						Context("When I read the value", func() {
@@ -296,7 +296,7 @@ var _ = Describe("Modifier", func() {
 					Context("When I read the second value of the array", func() {
 						var r io.Reader
 						BeforeEach(func() {
-							er := m.EntityReaderFor(dbpath.Path{"l1", 1})
+							er := m.EntityReaderFor(dbpath.Path{"l1", uint64(1)})
 							r = er.Data()
 						})
 						Context("When I read the value", func() {

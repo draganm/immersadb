@@ -1,11 +1,10 @@
-package gc
+package store
 
 import (
 	"github.com/draganm/immersadb/chunk"
-	"github.com/draganm/immersadb/store"
 )
 
-func Size(s store.Store) uint64 {
+func Size(s Store) uint64 {
 	done := map[uint64]struct{}{}
 	toDo := []uint64{s.NextChunkAddress() - chunk.CommitChunkSize}
 	size := uint64(0)
