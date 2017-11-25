@@ -709,4 +709,33 @@ var _ = Describe("Modify Map", func() {
 
 	})
 
+	Describe("Size", func() {
+		var size uint64
+		JustBeforeEach(func() {
+			size = 0
+			Expect(i.ReadTransaction(func(m modifier.MapReader) error {
+				size = m.Size()
+				return nil
+			})).To(Succeed())
+		})
+
+		Context("When map is empty", func() {
+			It("Should return 0", func() {
+				Expect(size).To(Equal(uint64(0)))
+			})
+		})
+
+		Context("When map has one element", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.CreateMap("test", nil)
+				})).To(Succeed())
+			})
+			It("Should return 1", func() {
+				Expect(size).To(Equal(uint64(1)))
+			})
+		})
+
+	})
+
 })

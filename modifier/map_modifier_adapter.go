@@ -95,7 +95,12 @@ func (m *MapModifierAdapter) Type(key string) EntityType {
 }
 
 func (m *MapModifierAdapter) Size() uint64 {
-	return m.m.EntityReaderFor(m.path).Size()
+	count := uint64(0)
+	m.m.ForEachMapEntry(func(key string, reader EntityReader) error {
+		count++
+		return nil
+	})
+	return count
 }
 
 func (m *MapModifierAdapter) CreateArray(key string, f func(ctx ArrayWriter) error) error {

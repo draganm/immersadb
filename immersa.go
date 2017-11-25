@@ -87,6 +87,12 @@ func (i *ImmersaDB) DumpGraph() {
 	graph.DumpGraph(i.store, i.store.NextChunkAddress()-chunk.CommitChunkSize)
 }
 
+func (i *ImmersaDB) Close() error {
+	i.Lock()
+	defer i.Unlock()
+	return i.store.Close()
+}
+
 func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	i.Lock()
 	defer i.Unlock()
@@ -124,10 +130,10 @@ func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	return nil
 }
 
-func (i *ImmersaDB) ReadTransaction(t func(modifier.MapReader) error) error {
+func (i *ImmersaDB) ReadTransaction(m func(modifier.MapReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
-	return i.readTransaction(t)
+	return i.readTransaction(m)
 }
 
 func (i *ImmersaDB) ReadTransactionOld(t func(modifier.EntityReader) error) error {

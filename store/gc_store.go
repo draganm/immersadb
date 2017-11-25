@@ -52,7 +52,9 @@ func NewGCStore(dir string) (*GCStore, error) {
 		return nil, errors.New("More than one segment found!")
 	}
 
-	start, err := strconv.ParseUint(strings.TrimSuffix(fileName, ".seg"), 16, 64)
+	fn := filepath.Base(fileName)
+
+	start, err := strconv.ParseUint(strings.TrimSuffix(fn, ".seg"), 16, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +95,16 @@ func (s *GCStore) GC() error {
 	dataSize := Size(s)
 	totalSize := s.BytesInStore()
 
-	if totalSize > uint64(float64(dataSize)*1.5) {
-		newStart := s.NextChunkAddress()
-		fileName := filepath.Join(s.dir, fmt.Sprintf("%016x.seg", newStart))
+	// don't GC before 10 mb
+	if dataSize < 10*1024*1024 {
+		return nil
+	}
 
-		newFileStore, err := NewFileStore(fileName)
+	if totalSize > uint64(float64(dataSize)*1.5) {
+
+		newStart := s.NextChunkAddress()
+		fileName := fmt.Sprintf("%016x.seg", newStart)
+		newFileStore, err := NewFileStore(filepath.Join(s.dir, fileName))
 		if err != nil {
 			return err
 		}
@@ -114,7 +121,7 @@ func (s *GCStore) GC() error {
 			return err
 		}
 
-		err = os.Remove(fileName)
+		err = os.Remove(filepath.Join(s.dir, s.fileName))
 		if err != nil {
 			return err
 		}
