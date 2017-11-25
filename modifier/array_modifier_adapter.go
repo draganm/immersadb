@@ -75,7 +75,9 @@ func (m *ArrayModifierAdapter) ReadData(index uint64, f func(r io.Reader) error)
 }
 
 func (m *ArrayModifierAdapter) ForEach(f func(index uint64, t EntityType) error) error {
-	return errors.New("Not supported")
+	return m.m.EntityReaderFor(m.path).ForEachArrayElement(func(index uint64, reader EntityReader) error {
+		return f(index, reader.Type())
+	})
 }
 
 func (m *ArrayModifierAdapter) ForEachAfter(index uint64, f func(index uint64, t EntityType) error) error {
@@ -87,7 +89,7 @@ func (m *ArrayModifierAdapter) HasKey(index uint64) bool {
 }
 
 func (m *ArrayModifierAdapter) Type(index uint64) EntityType {
-	return m.m.EntityReaderFor(m.path).Type()
+	return m.m.EntityReaderFor(m.path.Append(index)).Type()
 }
 
 func (m *ArrayModifierAdapter) Size() uint64 {

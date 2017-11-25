@@ -223,4 +223,94 @@ var _ = Describe("Modify Array", func() {
 
 		})
 	})
+
+	Describe("ForEach", func() {
+		BeforeEach(func() {
+			Expect(i.Transaction(func(m modifier.MapWriter) error {
+				return m.CreateArray("test", nil)
+			})).To(Succeed())
+		})
+
+		var err error
+		type indexAndType struct {
+			Index uint64
+			Type  modifier.EntityType
+		}
+		var iterated []indexAndType
+		JustBeforeEach(func() {
+			iterated = nil
+			err = i.Transaction(func(m modifier.MapWriter) error {
+				return m.InArray("test", func(m modifier.ArrayReader) error {
+					return m.ForEach(func(index uint64, t modifier.EntityType) error {
+						iterated = append(iterated, indexAndType{index, t})
+						return nil
+					})
+				})
+			})
+		})
+
+		Context("When array is empty", func() {
+			It("Should iterate over values 0 times", func() {
+				Expect(len(iterated)).To(Equal(0))
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("When array has one map", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependMap(nil)
+					})
+				})).To(Succeed())
+
+			})
+			It("Should iterate over the map value", func() {
+				Expect(iterated).To(Equal([]indexAndType{{Index: 0, Type: modifier.Map}}))
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("When array has one data", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependData(func(w io.Writer) error {
+							_, e := w.Write([]byte{1, 2, 3})
+							return e
+						})
+					})
+				})).To(Succeed())
+
+			})
+			It("Should iterate over the data value", func() {
+				Expect(iterated).To(Equal([]indexAndType{{Index: 0, Type: modifier.Data}}))
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("When array has one array", func() {
+			BeforeEach(func() {
+				Expect(i.Transaction(func(m modifier.MapWriter) error {
+					return m.ModifyArray("test", func(m modifier.ArrayWriter) error {
+						return m.PrependArray(nil)
+					})
+				})).To(Succeed())
+
+			})
+			It("Should iterate over the array value", func() {
+				Expect(iterated).To(Equal([]indexAndType{{Index: 0, Type: modifier.Array}}))
+			})
+			It("Should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+	})
 })
