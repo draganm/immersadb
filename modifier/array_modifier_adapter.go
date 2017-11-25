@@ -40,11 +40,15 @@ func (m *ArrayModifierAdapter) InMap(index uint64, f func(ctx MapReader) error) 
 
 func (m *ArrayModifierAdapter) InArray(index uint64, f func(ctx ArrayReader) error) error {
 
-	newPath := m.path.Append(index)
-	if !m.m.Exists(newPath) {
-		return ErrKeyDoesNotExist
+	if index >= m.Size() {
+		return ErrIndexOutOfBounds
 	}
 
+	newPath := m.path.Append(index)
+
+	if m.m.EntityReaderFor(newPath).Type() != Array {
+		return ErrNotArray
+	}
 	mm := &ArrayModifierAdapter{
 		m:    m.m,
 		path: newPath,
