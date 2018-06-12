@@ -24,6 +24,60 @@ var ErrKeyAlreadyExists = errors.New("Key already exists")
 var ErrIndexOutOfBounds = errors.New("Index out of bounds")
 var ErrArrayEmpty = errors.New("Array is empty")
 
+// type Node interface {
+// 	IsMap() bool
+// 	IsTree() bool
+// 	IsData() bool
+// }
+//
+// type DBArray interface {
+// 	PrependMap() (Node, error)
+// 	PrependArray() (Node, error)
+// 	PrependData(func(w io.Writer) error) error
+//
+// 	DeleteLast() error
+//
+// 	Get(idx uint64) (Node, bool)
+// 	Size() uint64
+// }
+//
+// type KeyIterator interface {
+// 	Next() string
+// 	HasNext() bool
+// }
+//
+// type DBMap interface {
+// 	CreateMap(key string) (DBMap, bool)
+// 	CreateArray(key string) (DBArray, bool)
+// 	CreateData(key string, f func(w io.Writer) error) error
+// 	Get(key string) (Node, bool)
+// 	Delete(key string) bool
+// 	HasKey(key string) bool
+// 	Keys() KeyIterator
+// }
+//
+// type Tx interface {
+// 	Root() DBMap
+// }
+
+type Path string
+
+type NodeType int
+
+type DBx interface {
+	TypeOf(p Path) NodeType
+
+	Exists(p Path) bool
+
+	CreateMap(p Path) error
+	CreateArray(p Path) error
+	StoreData(p Path, f func(w io.Writer) error) error
+
+	Delete(p Path) error
+	ForEach(p Path, f func(p Path) error) error
+	ForEachAfter(p Path, f func(p Path) error) error
+}
+
 type ArrayReader interface {
 	InArray(index uint64, f func(m ArrayReader) error) error
 	InMap(index uint64, f func(m MapReader) error) error
