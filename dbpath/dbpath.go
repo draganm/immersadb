@@ -39,3 +39,10 @@ func (p Path) Append(element interface{}) Path {
 		panic(fmt.Errorf("Wrong element type: %#v", element))
 	}
 }
+
+func (p Path) Last() interface{} {
+	if len(p) == 0 {
+		return nil
+	}
+	return p[len(p)-1]
+}
