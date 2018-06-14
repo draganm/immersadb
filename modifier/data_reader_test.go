@@ -3,12 +3,18 @@ package modifier_test
 import (
 	"io"
 	"io/ioutil"
+	"testing"
 
 	"github.com/draganm/immersadb/modifier"
 	"github.com/draganm/immersadb/store"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+func TestImmersadb(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Modifier Suite")
+}
 
 var _ = Describe("DataReader", func() {
 	var s *store.MemoryStore

@@ -19,15 +19,183 @@ type Modifier struct {
 	store.Store
 	chunkSize   int
 	RootAddress uint64
+	e           error
 }
 
-func New(s store.Store, chunkSize int, rootAddress uint64) *Modifier {
+var _ DBWriter = &Modifier{}
 
+func New(s store.Store, chunkSize int, rootAddress uint64) *Modifier {
 	return &Modifier{
 		Store:       s,
 		chunkSize:   chunkSize,
 		RootAddress: rootAddress,
 	}
+}
+
+func (m *Modifier) Error() error {
+	return m.e
+}
+
+func (m *Modifier) AbortIfErrror(err error) {
+	// TODO gather errors
+	if err != nil {
+		m.e = err
+	}
+}
+
+func (m *Modifier) ForEach(p dbpath.Path, f func(p dbpath.Path) bool) {
+	if m.e != nil {
+		return
+	}
+
+	exitErr := errors.New("exit")
+
+	err := ttfmap.ForEach(m.Store, m.RootAddress, func(key string, ref uint64) error {
+		cont := f(p.Append(key))
+		if !cont {
+			return exitErr
+		}
+		return nil
+	})
+
+	if err == exitErr {
+		return
+	}
+
+	m.e = err
+}
+
+func (m *Modifier) ForEachAfter(p dbpath.Path, f func(p dbpath.Path) bool) {
+	m.e = errors.New("ForEachAfter Not yet implemented")
+}
+
+type errorReader struct {
+	error
+}
+
+func (e errorReader) Read([]byte) (int, error) {
+	return 0, e
+}
+
+func (m *Modifier) Read(p dbpath.Path) io.Reader {
+	if m.e != nil {
+		return errorReader{m.e}
+	}
+
+	addr, err := m.lookupAddress(p, m.RootAddress)
+	if err != nil {
+		m.e = err
+		return errorReader{err}
+	}
+	return New(m.Store, m.chunkSize, addr).Data()
+}
+
+func (m *Modifier) TypeOf(p dbpath.Path) EntityType {
+	if m.e != nil {
+		return Unknown
+	}
+	addr, err := m.lookupAddress(p, m.RootAddress)
+	if err != nil {
+		return Unknown
+	}
+	return New(m.Store, m.chunkSize, addr).Type()
+}
+
+func (m *Modifier) CreateMap(path dbpath.Path) {
+	if m.e != nil {
+		return
+	}
+
+	last := path[len(path)-1]
+
+	m.e = m.modify(path[:len(path)-1], func(vm *Modifier) error {
+
+		switch last.(type) {
+		case string:
+			valueAddr, err := ttfmap.CreateEmpty(m.Store)
+			if err != nil {
+				return err
+			}
+
+			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
+
+			if err != nil {
+				return err
+			}
+
+			vm.RootAddress = newRoot
+			return nil
+		case uint64:
+			idx := last.(uint64)
+
+			if idx != 0 {
+				return errors.New("Can only append to the head of the array")
+			}
+
+			valueAddr, err := ttfmap.CreateEmpty(m.Store)
+			if err != nil {
+				return err
+			}
+
+			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
+			if err != nil {
+				return err
+			}
+
+			vm.RootAddress = newRoot
+			return nil
+		default:
+			return fmt.Errorf("Cannot create hash on %s: %#v is not supported as parent for Hash", path, last)
+		}
+
+	})
+
+}
+
+func (m *Modifier) CreateArray(path dbpath.Path) {
+	if m.e != nil {
+		return
+	}
+
+	last := path[len(path)-1]
+
+	m.e = m.modify(path[:len(path)-1], func(vm *Modifier) error {
+		switch last.(type) {
+		case string:
+
+			valueAddr, err := vm.createEmptyArrayLeaf()
+			if err != nil {
+				return err
+			}
+
+			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
+
+			if err != nil {
+				return err
+			}
+
+			vm.RootAddress = newRoot
+			return nil
+		case uint64:
+			valueAddr, err := vm.createEmptyArrayLeaf()
+			if err != nil {
+				return err
+			}
+
+			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
+			if err != nil {
+				return err
+			}
+
+			vm.RootAddress = newRoot
+
+			return nil
+
+		default:
+			panic(fmt.Sprintf("not yet implemented: %v", last))
+		}
+	})
+
 }
 
 func (m *Modifier) rootType() chunk.ChunkType {
@@ -88,102 +256,15 @@ func (m *Modifier) modify(path dbpath.Path, f func(*Modifier) error) error {
 
 }
 
-func (m *Modifier) CreateMap(path dbpath.Path) error {
+func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) {
+
+	if m.e != nil {
+		return
+	}
 
 	last := path[len(path)-1]
 
-	return m.modify(path[:len(path)-1], func(vm *Modifier) error {
-
-		switch last.(type) {
-		case string:
-			valueAddr, err := ttfmap.CreateEmpty(m.Store)
-			if err != nil {
-				return err
-			}
-
-			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
-
-			if err != nil {
-				return err
-			}
-
-			vm.RootAddress = newRoot
-			return nil
-		case uint64:
-			idx := last.(uint64)
-
-			if idx != 0 {
-				return errors.New("Can only append to the head of the array")
-			}
-
-			valueAddr, err := ttfmap.CreateEmpty(m.Store)
-			if err != nil {
-				return err
-			}
-
-			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
-			if err != nil {
-				return err
-			}
-
-			vm.RootAddress = newRoot
-			return nil
-		default:
-			return fmt.Errorf("Cannot create hash on %s: %#v is not supported as parent for Hash", path, last)
-		}
-
-	})
-
-}
-
-func (m *Modifier) CreateArray(path dbpath.Path) error {
-
-	last := path[len(path)-1]
-
-	return m.modify(path[:len(path)-1], func(vm *Modifier) error {
-		switch last.(type) {
-		case string:
-
-			valueAddr, err := vm.createEmptyArrayLeaf()
-			if err != nil {
-				return err
-			}
-
-			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
-
-			if err != nil {
-				return err
-			}
-
-			vm.RootAddress = newRoot
-			return nil
-		case uint64:
-			valueAddr, err := vm.createEmptyArrayLeaf()
-			if err != nil {
-				return err
-			}
-
-			newRoot, err := vm.prependArray(vm.RootAddress, valueAddr)
-			if err != nil {
-				return err
-			}
-
-			vm.RootAddress = newRoot
-
-			return nil
-
-		default:
-			panic(fmt.Sprintf("not yet implemented: %v", last))
-		}
-	})
-
-}
-
-func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
-
-	last := path[len(path)-1]
-
-	return m.modify(path[:len(path)-1], func(vm *Modifier) error {
+	m.e = m.modify(path[:len(path)-1], func(vm *Modifier) error {
 		switch last.(type) {
 		case string:
 
@@ -237,6 +318,15 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) error {
 
 }
 
+func (m *Modifier) AddressOf(path dbpath.Path) uint64 {
+	a, err := m.lookupAddress(path, m.RootAddress)
+	if err != nil {
+		m.e = err
+		return 0
+	}
+	return a
+}
+
 func (m *Modifier) lookupAddress(path dbpath.Path, from uint64) (uint64, error) {
 
 	for len(path) > 0 {
@@ -277,22 +367,10 @@ func (m *Modifier) Data() io.Reader {
 	return r
 }
 
-func (m *Modifier) ForEachMapEntry(f func(key string, reader EntityReader) error) error {
-	return ttfmap.ForEach(m.Store, m.RootAddress, func(key string, ref uint64) error {
-		return f(key, New(m.Store, m.chunkSize, ref))
-
-	})
-}
-
-func (m *Modifier) ForEachArrayElement(f func(index uint64, reader EntityReader) error) error {
-	return m.forEachArrayElementStartingWithIndex(0, m.RootAddress, func(idx, valueAddr uint64) error {
-		return f(idx, New(m.Store, m.chunkSize, valueAddr))
-	})
-}
-
 func (m *Modifier) Exists(path dbpath.Path) bool {
 	_, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
+		m.e = err
 		return false
 	}
 	return true
@@ -345,14 +423,6 @@ func (m *Modifier) Size() uint64 {
 	return 0
 }
 
-func (m *Modifier) EntityReaderFor(path dbpath.Path) EntityReader {
-	addr, err := m.lookupAddress(path, m.RootAddress)
-	if err != nil {
-		panic(err)
-	}
-	return New(m.Store, m.chunkSize, addr)
-}
-
 func (m *Modifier) clearMap(path dbpath.Path) error {
 	return m.modify(path[:len(path)], func(mm *Modifier) error {
 		rootAddres, err := ttfmap.CreateEmpty(m.Store)
@@ -364,9 +434,12 @@ func (m *Modifier) clearMap(path dbpath.Path) error {
 	})
 }
 
-func (m *Modifier) Delete(path dbpath.Path) error {
+func (m *Modifier) Delete(path dbpath.Path) {
+	if m.e != nil {
+		return
+	}
 	lastElement := path[len(path)-1]
-	return m.modify(path[:len(path)-1], func(mm *Modifier) error {
+	m.e = m.modify(path[:len(path)-1], func(mm *Modifier) error {
 		switch lastElement.(type) {
 		case string:
 			addr, err := ttfmap.Delete(m.Store, mm.RootAddress, lastElement.(string))

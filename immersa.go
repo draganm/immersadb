@@ -93,7 +93,7 @@ func (i *ImmersaDB) Close() error {
 	return i.store.Close()
 }
 
-func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
+func (i *ImmersaDB) Transaction(t func(m modifier.DBWriter) error) error {
 	i.Lock()
 	defer i.Unlock()
 
@@ -102,8 +102,14 @@ func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	_, refs, _ := chunk.Parts(cs.Chunk(cs.NextChunkAddress() - chunk.CommitChunkSize))
 
 	m := modifier.New(cs, chunkSize, refs[0])
-	mm := modifier.NewMapModifierAdapter(m)
-	err := t(mm)
+
+	err := t(m)
+	if err != nil {
+		return err
+	}
+
+	err = m.Error()
+
 	if err != nil {
 		return err
 	}
@@ -130,34 +136,21 @@ func (i *ImmersaDB) Transaction(t func(m modifier.MapWriter) error) error {
 	return nil
 }
 
-func (i *ImmersaDB) ReadTransaction(m func(modifier.MapReader) error) error {
+func (i *ImmersaDB) ReadTransaction(m func(modifier.DBReader) error) error {
 	i.RLock()
 	defer i.RUnlock()
 	return i.readTransaction(m)
 }
 
-func (i *ImmersaDB) ReadTransactionOld(t func(modifier.EntityReader) error) error {
-	i.RLock()
-	defer i.RUnlock()
-	return i.readTransactionOld(t)
-}
-
-func (i *ImmersaDB) readTransaction(t func(modifier.MapReader) error) error {
+func (i *ImmersaDB) readTransaction(t func(modifier.DBReader) error) error {
 	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
 	m := modifier.New(i.store, chunkSize, refs[0])
-	mm := modifier.NewMapModifierAdapter(m)
 
-	return t(mm)
-}
-
-func (i *ImmersaDB) readTransactionOld(t func(modifier.EntityReader) error) error {
-	_, refs, _ := chunk.Parts(i.store.Chunk(i.store.NextChunkAddress() - chunk.CommitChunkSize))
-	m := modifier.New(i.store, chunkSize, refs[0])
 	return t(m)
 }
 
 type Listener interface {
-	OnChange(r modifier.EntityReader)
+	OnChange(dbpath.Path, modifier.DBReader)
 }
 
 type listenerState struct {
@@ -179,17 +172,17 @@ func (i *ImmersaDB) AddListener(matcher dbpath.Path, f Listener) {
 	ls.checkForChange(i)
 }
 
-type listenerFuncHolder func(r modifier.EntityReader)
+type listenerFuncHolder func(dbpath.Path, modifier.DBReader)
 
-func (l listenerFuncHolder) OnChange(r modifier.EntityReader) {
-	l(r)
+func (l listenerFuncHolder) OnChange(p dbpath.Path, r modifier.DBReader) {
+	l(p, r)
 }
 
-func (i *ImmersaDB) AddListenerFunc(matcher dbpath.Path, f func(r modifier.EntityReader)) {
+func (i *ImmersaDB) AddListenerFunc(matcher dbpath.Path, f func(dbpath.Path, modifier.DBReader)) {
 	i.AddListener(matcher, listenerFuncHolder(f))
 }
 
-func (i *ImmersaDB) RemoveListenerFunc(matcher dbpath.Path, f func(r modifier.EntityReader)) {
+func (i *ImmersaDB) RemoveListenerFunc(matcher dbpath.Path, f func(dbpath.Path, modifier.DBReader)) {
 	i.RemoveListener(matcher, listenerFuncHolder(f))
 }
 
@@ -221,18 +214,16 @@ func (i *ImmersaDB) RemoveListener(matcher dbpath.Path, f Listener) {
 }
 
 func (ls *listenerState) checkForChange(i *ImmersaDB) {
-	i.readTransactionOld(func(r modifier.EntityReader) error {
+	i.readTransaction(func(r modifier.DBReader) error {
 		if r.Exists(ls.matcher) {
-			re := r.EntityReaderFor(ls.matcher)
-			addr := re.Address()
+			addr := r.AddressOf(ls.matcher)
 			if addr != ls.latestState {
-				sr := r.EntityReaderFor(ls.matcher)
-				ls.listener.OnChange(sr)
+
+				ls.listener.OnChange(ls.matcher, r)
 				ls.latestState = addr
 			}
 			return nil
 		}
-		ls.listener.OnChange(nil)
 		return nil
 	})
 
