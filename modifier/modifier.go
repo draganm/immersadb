@@ -262,19 +262,20 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) {
 	last := path[len(path)-1]
 
 	m.e = m.modify(path[:len(path)-1], func(vm *Modifier) error {
+
+		w := NewDataWriter(vm.Store, vm.chunkSize)
+		err := f(w)
+		if err != nil {
+			return err
+		}
+
+		valueAddr, err := w.Close()
+		if err != nil {
+			return err
+		}
+
 		switch last.(type) {
 		case string:
-
-			w := NewDataWriter(vm.Store, vm.chunkSize)
-			err := f(w)
-			if err != nil {
-				return err
-			}
-
-			valueAddr, err := w.Close()
-			if err != nil {
-				return err
-			}
 
 			newRoot, err := ttfmap.Insert(m.Store, vm.RootAddress, last.(string), valueAddr)
 			if err != nil {
@@ -286,16 +287,6 @@ func (m *Modifier) CreateData(path dbpath.Path, f func(io.Writer) error) {
 			idx := last.(uint64)
 			if idx != 0 {
 				return errors.New("Only append to array head is supported")
-			}
-			w := NewDataWriter(vm.Store, vm.chunkSize)
-			err := f(w)
-			if err != nil {
-				return err
-			}
-
-			valueAddr, err := w.Close()
-			if err != nil {
-				return err
 			}
 
 			newRootAddress, err := vm.prependArray(vm.RootAddress, valueAddr)
@@ -367,7 +358,6 @@ func (m *Modifier) Data() io.Reader {
 func (m *Modifier) Exists(path dbpath.Path) bool {
 	_, err := m.lookupAddress(path, m.RootAddress)
 	if err != nil {
-		m.e = err
 		return false
 	}
 	return true
