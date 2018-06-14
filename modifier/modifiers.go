@@ -31,7 +31,7 @@ type DBReader interface {
 	ForEach(p dbpath.Path, f func(p dbpath.Path) bool)
 	ForEachAfter(p dbpath.Path, f func(p dbpath.Path) bool)
 	Read(p dbpath.Path) io.Reader
-	AbortIfErrror(error)
+	AbortIfError(error)
 }
 
 type DBWriter interface {

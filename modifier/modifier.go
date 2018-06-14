@@ -36,7 +36,7 @@ func (m *Modifier) Error() error {
 	return m.e
 }
 
-func (m *Modifier) AbortIfErrror(err error) {
+func (m *Modifier) AbortIfError(err error) {
 	// TODO gather errors
 	if err != nil {
 		m.e = err
