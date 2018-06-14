@@ -55,6 +55,9 @@ func (m *Modifier) ForEach(p dbpath.Path, f func(p dbpath.Path) bool) {
 		if !cont {
 			return exitErr
 		}
+		if m.e != nil {
+			return m.e
+		}
 		return nil
 	})
 
