@@ -30,7 +30,7 @@ type DBReader interface {
 	Exists(p dbpath.Path) bool
 	ForEach(p dbpath.Path, f func(p dbpath.Path) bool)
 	ForEachAfter(p dbpath.Path, f func(p dbpath.Path) bool)
-	Read(p dbpath.Path) io.Reader
+	Read(p dbpath.Path, f func(io.Reader) error)
 	AbortIfError(error)
 }
 

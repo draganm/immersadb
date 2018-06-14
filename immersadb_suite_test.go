@@ -57,8 +57,10 @@ var _ = Describe("ImmersaDB", func() {
 				var data []byte
 				BeforeEach(func() {
 					i.AddListenerFunc(dbpath.P("test"), func(p dbpath.Path, r modifier.DBReader) {
-						reader := r.Read(p)
-						data, err = ioutil.ReadAll(reader)
+						r.Read(p, func(r io.Reader) error {
+							data, err = ioutil.ReadAll(r)
+							return err
+						})
 					})
 					Expect(err).ToNot(HaveOccurred())
 				})

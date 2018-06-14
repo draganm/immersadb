@@ -69,25 +69,19 @@ func (m *Modifier) ForEachAfter(p dbpath.Path, f func(p dbpath.Path) bool) {
 	m.e = errors.New("ForEachAfter Not yet implemented")
 }
 
-type errorReader struct {
-	error
-}
-
-func (e errorReader) Read([]byte) (int, error) {
-	return 0, e
-}
-
-func (m *Modifier) Read(p dbpath.Path) io.Reader {
+func (m *Modifier) Read(p dbpath.Path, f func(r io.Reader) error) {
 	if m.e != nil {
-		return errorReader{m.e}
+		return
 	}
 
 	addr, err := m.lookupAddress(p, m.RootAddress)
 	if err != nil {
 		m.e = err
-		return errorReader{err}
+		return
 	}
-	return New(m.Store, m.chunkSize, addr).Data()
+	r := New(m.Store, m.chunkSize, addr).Data()
+
+	m.e = f(r)
 }
 
 func (m *Modifier) TypeOf(p dbpath.Path) EntityType {
