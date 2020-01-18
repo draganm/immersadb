@@ -2,8 +2,8 @@ using Go = import "/go.capnp";
 
 @0xd28ad27aef780427;
 
-$Go.package("segment");
-$Go.import("segment");
+$Go.package("store");
+$Go.import("store");
 
 struct Segment {
     children @0 :List(UInt64);
