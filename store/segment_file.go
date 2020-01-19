@@ -44,7 +44,7 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 	}, nil
 }
 
-func (s *SegmentFile) EnsureSize(bytes int) error {
+func (s *SegmentFile) ensureSize(bytes int) error {
 	for int(s.limit-s.nextFreeByte) < bytes {
 		// TODO: figure out how to do only one truncate
 		err := s.f.Truncate(int64(s.nextFreeByte + extendStep))
@@ -67,7 +67,7 @@ func (s *SegmentFile) Close() error {
 }
 
 func (s *SegmentFile) Write(data []byte) (uint64, error) {
-	err := s.EnsureSize(int(s.nextFreeByte) + len(data))
+	err := s.ensureSize(int(s.nextFreeByte) + len(data))
 	if err != nil {
 		return 0, errors.Wrap(err, "while ensuring size")
 	}
