@@ -14,20 +14,23 @@ type Segment_specific Segment
 type Segment_specific_Which uint16
 
 const (
-	Segment_specific_Which_dataLeaf    Segment_specific_Which = 0
-	Segment_specific_Which_dataNode    Segment_specific_Which = 1
-	Segment_specific_Which_wbbtreeNode Segment_specific_Which = 2
+	Segment_specific_Which_commit      Segment_specific_Which = 0
+	Segment_specific_Which_dataLeaf    Segment_specific_Which = 1
+	Segment_specific_Which_dataNode    Segment_specific_Which = 2
+	Segment_specific_Which_wbbtreeNode Segment_specific_Which = 3
 )
 
 func (w Segment_specific_Which) String() string {
-	const s = "dataLeafdataNodewbbtreeNode"
+	const s = "commitdataLeafdataNodewbbtreeNode"
 	switch w {
+	case Segment_specific_Which_commit:
+		return s[0:6]
 	case Segment_specific_Which_dataLeaf:
-		return s[0:8]
+		return s[6:14]
 	case Segment_specific_Which_dataNode:
-		return s[8:16]
+		return s[14:22]
 	case Segment_specific_Which_wbbtreeNode:
-		return s[16:27]
+		return s[22:33]
 
 	}
 	return "Segment_specific_Which(" + strconv.FormatUint(uint64(w), 10) + ")"
@@ -111,8 +114,13 @@ func (s Segment) Specific() Segment_specific { return Segment_specific(s) }
 func (s Segment_specific) Which() Segment_specific_Which {
 	return Segment_specific_Which(s.Struct.Uint16(0))
 }
+func (s Segment_specific) SetCommit() {
+	s.Struct.SetUint16(0, 0)
+
+}
+
 func (s Segment_specific) DataLeaf() ([]byte, error) {
-	if s.Struct.Uint16(0) != 0 {
+	if s.Struct.Uint16(0) != 1 {
 		panic("Which() != dataLeaf")
 	}
 	p, err := s.Struct.Ptr(2)
@@ -120,7 +128,7 @@ func (s Segment_specific) DataLeaf() ([]byte, error) {
 }
 
 func (s Segment_specific) HasDataLeaf() bool {
-	if s.Struct.Uint16(0) != 0 {
+	if s.Struct.Uint16(0) != 1 {
 		return false
 	}
 	p, err := s.Struct.Ptr(2)
@@ -128,24 +136,24 @@ func (s Segment_specific) HasDataLeaf() bool {
 }
 
 func (s Segment_specific) SetDataLeaf(v []byte) error {
-	s.Struct.SetUint16(0, 0)
+	s.Struct.SetUint16(0, 1)
 	return s.Struct.SetData(2, v)
 }
 
 func (s Segment_specific) DataNode() uint64 {
-	if s.Struct.Uint16(0) != 1 {
+	if s.Struct.Uint16(0) != 2 {
 		panic("Which() != dataNode")
 	}
 	return s.Struct.Uint64(8)
 }
 
 func (s Segment_specific) SetDataNode(v uint64) {
-	s.Struct.SetUint16(0, 1)
+	s.Struct.SetUint16(0, 2)
 	s.Struct.SetUint64(8, v)
 }
 
 func (s Segment_specific) WbbtreeNode() (WBBTreeNode, error) {
-	if s.Struct.Uint16(0) != 2 {
+	if s.Struct.Uint16(0) != 3 {
 		panic("Which() != wbbtreeNode")
 	}
 	p, err := s.Struct.Ptr(2)
@@ -153,7 +161,7 @@ func (s Segment_specific) WbbtreeNode() (WBBTreeNode, error) {
 }
 
 func (s Segment_specific) HasWbbtreeNode() bool {
-	if s.Struct.Uint16(0) != 2 {
+	if s.Struct.Uint16(0) != 3 {
 		return false
 	}
 	p, err := s.Struct.Ptr(2)
@@ -161,14 +169,14 @@ func (s Segment_specific) HasWbbtreeNode() bool {
 }
 
 func (s Segment_specific) SetWbbtreeNode(v WBBTreeNode) error {
-	s.Struct.SetUint16(0, 2)
+	s.Struct.SetUint16(0, 3)
 	return s.Struct.SetPtr(2, v.Struct.ToPtr())
 }
 
 // NewWbbtreeNode sets the wbbtreeNode field to a newly
 // allocated WBBTreeNode struct, preferring placement in s's segment.
 func (s Segment_specific) NewWbbtreeNode() (WBBTreeNode, error) {
-	s.Struct.SetUint16(0, 2)
+	s.Struct.SetUint16(0, 3)
 	ss, err := NewWBBTreeNode(s.Struct.Segment())
 	if err != nil {
 		return WBBTreeNode{}, err
@@ -300,33 +308,34 @@ func (p WBBTreeNode_Promise) Struct() (WBBTreeNode, error) {
 	return WBBTreeNode{s}, err
 }
 
-const schema_d28ad27aef780427 = "x\xda\\\x91\xb1kSQ\x14\xc6\xbf\xef\xdc\xc4P\xb0" +
-	"!\x8f\x04\xa7\x86\xa2\x8b\x93\x05\x1d]Z\x8a\x82\xd6\xb4" +
-	"\xe6\xd4\x14\x8b(4y\xef\xa6}h\xf3b\xdf+\x9a" +
-	"\xfc\x09\xf5/psv)8\xba;(\xb8dqs" +
-	"s\x13\xea\x1c\xd4+\xf7\xc5&%\xdb9\xbf\xfb\x0d\xbf" +
-	"\xf3\xdd\xca\xaf5\xb9YL\x04\xd0\xa5\xe2%w\xb6\xfa" +
-	"ep\xf2\xee\xfdw\xe8\x15\x8a[y\xf0c\xf3c\xfb" +
-	"\xdbO\xec\x98\x12\x0dP\xads\x0cV\xaf\xf2\x14\x9c=" +
-	"j\x99\xe2\xae\x17^\x9f\x0dG'#\x14M\x09\xa8~" +
-	"\xe2\x87\xeaW\xfa\xe9s\x1e~\xf8v8|3\xfe=" +
-	"\x9e\x0f\xe7\x91C\x19U\x07\xe2\xa7c9\xc5\x0d\x97\xda" +
-	"\xfdC\xdb\xcbV$l\xf7{\xfd\xdb\x8f\xfe\xafi\x7f" +
-	"\xd5\x86q7\x0e\xf5\xb2),9'5\x0a\x10\xdc\xdd" +
-	"\x00\xf4\x8e\xa16\x85u\xfeu\xacy\xd5`\xd3\xe3\x86" +
-	"\xa1\xee\x0a\xeb\xf2\xc7\xa7\x0b@\xb0\xd3\x01\xb4e\xa8{" +
-	"B\x17\xb5\xb3v\xc3\xb6\xbb\x00\xb8\x08\xe1\"&l+" +
-	"\x89\xacg\x0b\x10.\x80\xeeU\xa7\x93\x1dY\xbb\x85R" +
-	"\x12YVf\xd7\x80\xac\x80Sa\x9e\x0b/\xe7{\x93" +
-	"\xf4\xaa@\x81\x17=\xf7\x84\x01Y\xa3\x87\xcfn\x01\xba" +
-	"k\xa8\x99\x90B\xce> x\xb9\x01q\xe1A\xfc\"" +
-	":\xb2=oS\x06\x9b\x86\xb9T\x19\\N\xe3\xa1M" +
-	"\xe7\xa0K\xfb\x93\x8a\x00\xcc\xd7\xf8x}\xbd\xe5\x8fH" +
-	"\"\xda9\xb3k\x80\xae\x19jCx.v\x7f\x1b\xd0" +
-	"{\x86\xda\x12\x06\xc2I\xd5\xfa\x04\xd0\xa6\xa1>\x15\x96" +
-	"\x9e\xdb\xc1\xb4\xb409\xeee\x0d\xdb\x05\xb3ii9" +
-	"\xdb\x8e\xf7a\x0e\xa6\xf0_\x00\x00\x00\xff\xff\xfc\x90\x9b" +
-	"G"
+const schema_d28ad27aef780427 = "x\xda\\\x91?kSQ\x18\xc6\x9f\xe7=IC\xa0" +
+	"\x0d\xb9$8\x19\x8a.N\x16t\xec\x92R\x14\xb4\xc6" +
+	"\x9a\xb7V\x14\xa9\xe0\xcd\xbd'\xcd\xc5&76\xb7\xd8" +
+	"fr\xae\x9f\xc0\xcdU\x97\xa2\xe0\xe2Gp\xcc\xe2\xe6" +
+	"&.B\xf7P=r\xd26\x81l\xe7\xfd\x9dgx" +
+	"\xfe\x94\xdd\x9a\xdc\xca\xa7\x02\xe8\xd5\xfc\x82;\xad\x7f?" +
+	":\xfe\xf0\xe9'\xf4\x0a\xc5\xad<\xf8\xf5\xf0[\xf8\xe3" +
+	"\x0f\x9e\x98\x02s@\xa5\xc61X\xb9\xc6\xdf\xe0\xecS" +
+	"K\x14w#wx:\x1c\x1d\x8f\x907\x05\xa0B\xf9" +
+	"R)\x8a\x7f\xe5\xe5\x04t\x8f\xde\x0f\x87\xef\xc6g\xe3" +
+	"y1\xbd\xe4\xa3\x8c*_'\xe2\xcfr\x82\x9bn`" +
+	"w\xbb\xb6\x97\xadH\x14\xf6{\xfd\xd5\xc7\x17\xe7\xa0_" +
+	"\xb7Q\xd2N\"-\x9b\xdc\xa2sU\x0a\x10\x84\xab\x80" +
+	"\xee\x18jGX\xe3?'U\x1a \xb0\x1b\x80\xc6\x86" +
+	"\xda\x17\xd6\xe4\xafc\xd5\x07\x08\xba\x1e\xef\x19\xea\xa1\xb0" +
+	"f\xce\xbc:\x0f\x04\x07-@3C}+\xacGi" +
+	"\xb7\x9bdXpq\x98\x85\x0d\x1b\xb6\x01p\x09\xc2%" +
+	"p\xc26\xd3\xd8zV\x84\xb0\x08\xba7\xadV\xb6o" +
+	"\xed&\x0ailY\x9e\x85\x05Y\x06\xa7yx\x99g" +
+	"yr7I]49 G \xb8\xeb\x9d\xdd1\xd4" +
+	"\x97\xc2\x80\xac\xd2\xc3\x17\xb7\x01}f\xa8\x99\x90B\xce" +
+	"\xf6\x09^o@\\\xd4I\xf6\xe2}\xdb\xf3nJ`" +
+	"\xd3pb\xaa\x04.\x0f\x92\xa1\x1d\xccA7\xe8\x9f7" +
+	"\x08`\xbe\xe5\xa7\xeb\xeb\xdb>D\x1a\xd3\xce9\xbb\x0e" +
+	"\xe8\x9a\xa16\x84\x97\xc6\xeeo\x01z\xcfP\xb7\x85\x81" +
+	"\xf0|\x0a}\x0eh\xd3Pw\x84\x85W\xf6hZZ" +
+	"\x94\x1e\xf4\xb2\x86m\x83\xd9\xb4\xb4\x09\xdbJva:" +
+	"S\xf8?\x00\x00\xff\xffu\x13\xa2*"
 
 func init() {
 	schemas.Register(schema_d28ad27aef780427,

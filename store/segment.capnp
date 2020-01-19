@@ -9,9 +9,10 @@ struct Segment {
     children @0 :List(UInt64);
     sizes @1 :List(UInt64);
     specific :union {
-        dataLeaf @2 :Data;
-        dataNode @3 :UInt64;
-        wbbtreeNode @4 :WBBTreeNode;
+        commit @2:Void;
+        dataLeaf @3 :Data;
+        dataNode @4 :UInt64;
+        wbbtreeNode @5 :WBBTreeNode;
     }
 }
 

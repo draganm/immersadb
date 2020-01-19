@@ -14,3 +14,7 @@ func (a Address) Segment() int {
 func NewAddress(segment int, position uint64) Address {
 	return Address(uint64(segment&0x3)<<62 | (position << 2 >> 2))
 }
+
+const NilAddress Address = (0xffffffffffffffff)
+
+const MaxLayers = 4
