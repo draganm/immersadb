@@ -30,20 +30,6 @@ func TestSegmentFile(t *testing.T) {
 
 	defer sf.Close()
 
-	t.Run("when the segment file is newly created", func(t *testing.T) {
-		t.Run("then the WriteRegion should be empty", func(t *testing.T) {
-			require.Equal(t, 0, len(sf.WriteRegion()))
-		})
-	})
-
-	t.Run("when I ensure 100 bytes size", func(t *testing.T) {
-		err = sf.EnsureSize(100)
-		require.NoError(t, err)
-		t.Run("then the segment file write region should be at least 100 bytes long", func(t *testing.T) {
-			require.GreaterOrEqual(t, len(sf.WriteRegion()), 100)
-		})
-	})
-
 	t.Run("when I write 3 bytes in the segment file", func(t *testing.T) {
 		addr, err := sf.Write([]byte{1, 2, 3})
 		require.NoError(t, err)

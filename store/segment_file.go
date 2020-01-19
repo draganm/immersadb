@@ -57,10 +57,6 @@ func (s *SegmentFile) EnsureSize(bytes int) error {
 	return nil
 }
 
-func (s *SegmentFile) WriteRegion() []byte {
-	return s.MMap[s.nextFreeByte:s.limit]
-}
-
 func (s *SegmentFile) Close() error {
 	err := s.MMap.Unmap()
 	if err != nil {
