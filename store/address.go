@@ -1,5 +1,7 @@
 package store
 
+import "fmt"
+
 type Address uint64
 
 func (a Address) Position() uint64 {
@@ -18,3 +20,7 @@ func NewAddress(segment int, position uint64) Address {
 const NilAddress Address = (0xffffffffffffffff)
 
 const MaxLayers = 4
+
+func (a Address) String() string {
+	return fmt.Sprintf("Segment %d Position %d", a.Segment(), a.Position())
+}

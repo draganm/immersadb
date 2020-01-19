@@ -1,13 +1,21 @@
 package store
 
 import (
+	serrors "errors"
 	"github.com/pkg/errors"
 	capnp "zombiezen.com/go/capnproto2"
 )
 
 type Store []*SegmentFile
 
+var ErrNotFound = serrors.New("not found")
+
 func (s Store) Get(a Address) (Segment, error) {
+
+	if a == NilAddress {
+		return Segment{}, ErrNotFound
+	}
+
 	idx := a.Segment()
 	data := s[idx].MMap
 	msg, err := capnp.Unmarshal(data[a.Position():])
