@@ -17,7 +17,7 @@ func TestStore(t *testing.T) {
 
 	defer l0.Close()
 
-	l1, err := store.OpenOrCreateSegmentFile(filepath.Join(td, "l0"), 10*1024*1024)
+	l1, err := store.OpenOrCreateSegmentFile(filepath.Join(td, "l1"), 10*1024*1024)
 	require.NoError(t, err)
 
 	defer l1.Close()

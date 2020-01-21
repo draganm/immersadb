@@ -84,3 +84,13 @@ func (s *SegmentFile) Write(data []byte) (uint64, error) {
 func (s *SegmentFile) Flush() error {
 	return s.MMap.Flush()
 }
+
+func (s *SegmentFile) Allocate(size int) (uint64, []byte, error) {
+	err := s.ensureSize(int(s.nextFreeByte)+size)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "while ensuring size")
+	}
+	start := s.nextFreeByte
+	s.nextFreeByte+=int64(size)
+	return uint64(start), s.MMap[int(start):int(start)+size], nil
+}

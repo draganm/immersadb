@@ -72,3 +72,11 @@ func (s SegmentReader) GetLayerTotalSize(l int) uint64 {
 
 	return binary.BigEndian.Uint64(s[4+1+l*8:])
 }
+
+func (s SegmentReader) GetTotalTreeSize() uint64 {
+	var totalSize uint64
+	for i := 0; i < 4; i++ {
+		totalSize += s.GetLayerTotalSize(i)
+	}
+	return totalSize
+}
