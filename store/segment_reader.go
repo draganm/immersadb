@@ -14,19 +14,19 @@ import (
 
 type SegmentReader []byte
 
-func NewSegmentReader(data []byte) (SegmentReader, error) {
+func NewSegmentReader(data []byte) SegmentReader {
 	if len(data) < 4 {
-		return SegmentReader{}, errors.New("segment data is too short")
+		panic(errors.New("segment data is too short"))
 	}
 
 	totalLength := int(binary.BigEndian.Uint32(data))
 
 	if len(data) < totalLength {
-		return SegmentReader{}, errors.New("segment data is too short")
+		panic(errors.New("segment data is too short"))
 	}
 
 	if totalLength < 4+1+4*8+1 {
-		return SegmentReader{}, errors.New("total length is too short")
+		panic(errors.New("total length is too short"))
 	}
 
 	numberOfChildren := data[4+1+4*8]
@@ -34,10 +34,10 @@ func NewSegmentReader(data []byte) (SegmentReader, error) {
 	headerLength := numberOfChildren*8 + 4 + 1 + 4*8 + 1
 
 	if int(headerLength) > totalLength {
-		return SegmentReader{}, errors.New("total length is too short")
+		panic(errors.New("total length is too short"))
 	}
 
-	return data[:totalLength], nil
+	return data[:totalLength]
 
 }
 

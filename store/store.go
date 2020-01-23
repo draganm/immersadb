@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/binary"
 	serrors "errors"
 	"github.com/pkg/errors"
 	capnp "zombiezen.com/go/capnproto2"
@@ -9,6 +10,23 @@ import (
 type Store []*SegmentFile
 
 var ErrNotFound = serrors.New("not found")
+
+func (s Store) GetSegment(a Address) []byte {
+	if a == NilAddress {
+		panic("getting Nil Segment")
+	}
+
+	idx := a.Segment()
+	data := s[idx].MMap
+
+	length := binary.BigEndian.Uint32(data[a.Position():])
+	if length == 0 {
+		panic("getting segment with length 0")
+	}
+
+	return []byte(data[a.Position() : int(a.Position())+int(length)])
+
+}
 
 func (s Store) Get(a Address) (Segment, error) {
 

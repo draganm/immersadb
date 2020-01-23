@@ -5,8 +5,8 @@ import "github.com/pkg/errors"
 import "encoding/binary"
 
 type SegmentWriter struct {
-	st   Store
-	seg  []byte
+	st Store
+	SegmentReader
 	Data []byte
 	Address
 }
@@ -29,11 +29,56 @@ func NewSegmentWriter(st Store, segmentType byte, numberOfChildren int, dataSize
 	}
 
 	return SegmentWriter{
-		st:      st,
-		seg:     d,
-		Data:    d[4+1+4*8+1+8*numberOfChildren:],
-		Address: NewAddress(0, pos),
+		st:            st,
+		SegmentReader: NewSegmentReader(d),
+		Data:          d[4+1+4*8+1+8*numberOfChildren:],
+		Address:       NewAddress(0, pos),
 	}, nil
 }
 
-// func (s SegmentWriter)
+func (s SegmentWriter) SetLayerTotalSize(i int, newSize uint64) {
+	if i < 0 {
+		panic("negative layer index")
+	}
+
+	if i > 3 {
+		panic("not exisiting layer")
+	}
+
+	binary.BigEndian.PutUint64(s.SegmentReader[4+1+i*8:], newSize)
+}
+
+func (s SegmentWriter) SetChild(i int, addr Address) {
+
+	// segmentData := s.st.GetSegment(addr)
+
+	// numberOfChildren := int(s.seg[4+1+4*8])
+
+	if i >= s.NumberOfChildren() {
+		panic("trying to set child that segment does not have")
+	}
+
+	oldChildAddress := s.SegmentReader.GetChildAddress(i)
+
+	if oldChildAddress != NilAddress {
+		for i := 0; i < 4; i++ {
+			r := NewSegmentReader(s.st.GetSegment(oldChildAddress))
+			newSize := s.GetLayerTotalSize(i) - r.GetLayerTotalSize(i)
+			s.SetLayerTotalSize(i, newSize)
+		}
+	}
+
+	binary.BigEndian.PutUint64(s.SegmentReader[4+1+4*8+1+i*8:], uint64(addr))
+
+	if addr == NilAddress {
+		return
+	}
+
+	newChildReader := NewSegmentReader(s.st.GetSegment(addr))
+
+	for i := 0; i < 4; i++ {
+		newSize := s.GetLayerTotalSize(i) + newChildReader.GetLayerTotalSize(i)
+		s.SetLayerTotalSize(i, newSize)
+	}
+
+}
