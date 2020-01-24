@@ -51,11 +51,3 @@ func (n nodeReader) leftCount() uint64 {
 func (n nodeReader) rightCount() uint64 {
 	return binary.BigEndian.Uint64(n.segmentReader().GetData()[8:])
 }
-
-// func (n nodeReader) createCopy(st store.Store) (nodeModifier, error) {
-// 	sr := n.segmentReader()
-// 	sw, err := st.CreateSegment(sr.Type(), sr.NumberOfChildren(),len(sr.GetData())
-// 	if err != nil {
-// 		return nodeModifier{}, errors.Wrap(err, "while creating new segment")
-// 	}
-// }

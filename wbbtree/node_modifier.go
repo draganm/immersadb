@@ -19,46 +19,6 @@ func newNodeModifier(s store.Store, key []byte) (nodeModifier, error) {
 
 }
 
-// func newNodeModifier(f store.Segment) nodeModifier {
-// 	nm := &nodeModifier{
-// 		f: f,
-// 		e: nil,
-// 	}
-
-// 	wbtn, err := store.NewWBBTreeNode(f.Segment())
-// 	if err != nil {
-// 		return nm.setError(errors.Wrap(err, "while creating new WBBTreeNode"))
-// 	}
-
-// 	wbtn.SetCountLeft(0)
-// 	wbtn.SetCountRight(0)
-
-// 	err = f.Specific().SetWbbtreeNode(wbtn)
-// 	if err != nil {
-// 		return nm.setError(errors.Wrap(err, "while setting WBBTreeNode to Segment"))
-// 	}
-
-// 	dl, err := capnp.NewUInt64List(f.Segment(), 3)
-// 	if err != nil {
-// 		return nm.setError(errors.Wrap(err, "while creating new data list"))
-// 	}
-
-// 	for i := 0; i < 3; i++ {
-// 		dl.Set(i, uint64(store.NilAddress))
-// 	}
-
-// 	err = f.SetChildren(dl)
-// 	if err != nil {
-// 		return nm.setError(errors.Wrap(err, "while setting children of a WBBTreeNode Segment"))
-// 	}
-
-// 	return nm
-// }
-
-// func (n nodeModifier) setKey(k []byte) {
-// 	n.Data[]
-// }
-
 func (n nodeModifier) setLeftCount(c uint64) {
 	binary.BigEndian.PutUint64(n.Data, c)
 }
