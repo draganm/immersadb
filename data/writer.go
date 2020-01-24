@@ -1,9 +1,10 @@
 package data
 
 import (
+	"encoding/binary"
+
 	"github.com/draganm/immersadb/store"
 	"github.com/pkg/errors"
-	capnp "zombiezen.com/go/capnproto2"
 )
 
 type fragmentAggregator struct {
@@ -38,39 +39,31 @@ func (f *fragmentAggregator) addFragment(k store.Address, size uint64) error {
 }
 
 func (f *fragmentAggregator) toSegment() (store.Address, error) {
-	return f.store.Append(0, func(fr store.Segment) error {
-		ch, err := capnp.NewUInt64List(fr.Segment(), int32(len(f.fragments)))
-		if err != nil {
-			return errors.Wrap(err, "while creating children list")
-		}
-		for i, k := range f.fragments {
-			ch.Set(i, uint64(k))
-		}
-		err = fr.SetChildren(ch)
-		if err != nil {
-			return errors.Wrap(err, "while setting data children")
-		}
 
-		fr.Specific().SetDataNode(f.totalSize)
+	sw, err := f.store.CreateSegment(store.TypeDataNode, len(f.fragments), 8)
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating segment")
+	}
 
-		if err != nil {
-			return errors.Wrap(err, "error while setting fragment type to data node")
-		}
+	for i, k := range f.fragments {
+		sw.SetChild(i, k)
+	}
 
-		return nil
-	})
+	binary.BigEndian.PutUint64(sw.Data, f.totalSize)
+
+	return sw.Address, nil
+
 }
 
 func (f *fragmentAggregator) finish() (store.Address, error) {
 	if f.parent == nil {
 		if len(f.fragments) == 0 {
-			k, err := f.store.Append(0, func(f store.Segment) error {
-				return f.Specific().SetDataLeaf(nil)
-			})
+			sw, err := f.store.CreateSegment(store.TypeDataLeaf, 0, 0)
+
 			if err != nil {
 				return store.NilAddress, errors.Wrap(err, "while creating empty data leaf")
 			}
-			return k, nil
+			return sw.Address, nil
 		}
 		if len(f.fragments) == 1 {
 			return f.fragments[0], nil
@@ -137,13 +130,12 @@ func (dw *DataWriter) Write(d []byte) (int, error) {
 		}
 
 		if len(dw.buffer) == dw.fragSize {
-			k, err := dw.store.Append(0, func(f store.Segment) error {
-				return f.Specific().SetDataLeaf(dw.buffer)
-			})
+			sw, err := dw.store.CreateSegment(store.TypeDataLeaf, 0, len(dw.buffer))
 			if err != nil {
 				return -1, errors.Wrap(err, "while storing data leaf")
 			}
-			err = dw.parentAggregator.addFragment(k, uint64(len(dw.buffer)))
+			copy(sw.Data, dw.buffer)
+			err = dw.parentAggregator.addFragment(sw.Address, uint64(len(dw.buffer)))
 			if err != nil {
 				return -1, errors.Wrap(err, "while adding fragment to leaf's parent")
 			}
@@ -156,15 +148,14 @@ func (dw *DataWriter) Write(d []byte) (int, error) {
 
 func (dw *DataWriter) Finish() (store.Address, error) {
 	if len(dw.buffer) > 0 {
-		k, err := dw.store.Append(0, func(f store.Segment) error {
-			return f.Specific().SetDataLeaf(dw.buffer)
-		})
-
+		sw, err := dw.store.CreateSegment(store.TypeDataLeaf, 0, len(dw.buffer))
 		if err != nil {
 			return store.NilAddress, errors.Wrap(err, "while storing data leaf")
 		}
 
-		err = dw.parentAggregator.addFragment(k, uint64(len(dw.buffer)))
+		copy(sw.Data, dw.buffer)
+
+		err = dw.parentAggregator.addFragment(sw.Address, uint64(len(dw.buffer)))
 		if err != nil {
 			return store.NilAddress, errors.Wrap(err, "while adding data fragmment to it's aggregator")
 		}

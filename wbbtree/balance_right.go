@@ -7,89 +7,95 @@ import (
 
 func singleRight(s store.Store, k store.Address) (store.Address, error) {
 
-	nr := newNodeReader(s, k)
-	lcnr := newNodeReader(s, nr.leftChild())
-
-	nrc, err := s.Append(0,func(f store.Segment) error {
-		nm := newNodeModifier(f)
-		nm.setKey(nr.key())
-		nm.setValue(nr.value())
-		nm.setRightChild(nr.rightChild())
-		nm.setRightCount(nr.rightCount())
-
-		nm.setLeftChild(lcnr.rightChild())
-		nm.setLeftCount(lcnr.rightCount())
-
-		return firstError(nr.err, lcnr.err, nm.err)
-	})
-
+	nr, err := newNodeReader(s, k)
 	if err != nil {
-		return store.NilAddress, errors.Wrap(err, "while creating a'")
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
 	}
+
+	lcnr, err := newNodeReader(s, nr.leftChild())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
+	}
+
+	nm, err := newNodeModifier(s, nr.key())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+	}
+
+	nm.setValue(nr.value())
+	nm.setRightChild(nr.rightChild())
+	nm.setRightCount(nr.rightCount())
+
+	nm.setLeftChild(lcnr.rightChild())
+	nm.setLeftCount(lcnr.rightCount())
+
+	nrc := nm.Address
 
 	nrccount, err := Count(s, nrc)
 	if err != nil {
 		return store.NilAddress, errors.Wrap(err, "while getting count of a'")
 	}
 
-	return s.Append(0,func(f store.Segment) error {
-		nm := newNodeModifier(f)
+	nm, err = newNodeModifier(s, lcnr.key())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+	}
+	nm.setValue(lcnr.value())
 
-		nm.setValue(lcnr.value())
-		nm.setKey(lcnr.key())
+	nm.setLeftChild(lcnr.leftChild())
+	nm.setLeftCount(lcnr.leftCount())
 
-		nm.setLeftChild(lcnr.leftChild())
-		nm.setLeftCount(lcnr.leftCount())
+	nm.setRightChild(nrc)
+	nm.setRightCount(nrccount)
 
-		nm.setRightChild(nrc)
-		nm.setRightCount(nrccount)
-
-		return firstError(nr.err, lcnr.err, nm.err)
-	})
+	return nm.Address, nil
 }
 
 func doubleRight(s store.Store, k store.Address) (store.Address, error) {
-	nr := newNodeReader(s, k)
-	lcnr := newNodeReader(s, nr.leftChild())
-	lrcnr := newNodeReader(s, lcnr.rightChild())
-
-	nrc, err := s.Append(0,func(f store.Segment) error {
-		nm := newNodeModifier(f)
-
-		nm.setKey(nr.key())
-		nm.setValue(nr.value())
-
-		nm.setRightChild(nr.rightChild())
-		nm.setRightCount(nr.rightCount())
-
-		nm.setLeftChild(lrcnr.rightChild())
-		nm.setLeftCount(lrcnr.rightCount())
-
-		return firstError(nr.err, lcnr.err, lrcnr.err, nm.err)
-	})
-
+	nr, err := newNodeReader(s, k)
 	if err != nil {
-		return store.NilAddress, errors.Wrap(err, "while creating a'")
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
 	}
 
-	nlc, err := s.Append(0,func(f store.Segment) error {
-		nm := newNodeModifier(f)
-
-		nm.setKey(lcnr.key())
-		nm.setValue(lcnr.value())
-
-		nm.setRightChild(lrcnr.leftChild())
-		nm.setRightCount(lrcnr.leftCount())
-
-		nm.setLeftChild(lcnr.leftChild())
-		nm.setLeftCount(lcnr.leftCount())
-
-		return firstError(nr.err, lcnr.err, lrcnr.err, nm.err)
-	})
-
+	lcnr, err := newNodeReader(s, nr.leftChild())
 	if err != nil {
-		return store.NilAddress, errors.Wrap(err, "while creating c'")
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
 	}
+
+	lrcnr, err := newNodeReader(s, lcnr.rightChild())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
+	}
+
+	nm, err := newNodeModifier(s, nr.key())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+	}
+
+	nm.setValue(nr.value())
+
+	nm.setRightChild(nr.rightChild())
+	nm.setRightCount(nr.rightCount())
+
+	nm.setLeftChild(lrcnr.rightChild())
+	nm.setLeftCount(lrcnr.rightCount())
+
+	nrc := nm.Address
+
+	nm, err = newNodeModifier(s, lcnr.key())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+	}
+
+	nm.setValue(lcnr.value())
+
+	nm.setRightChild(lrcnr.leftChild())
+	nm.setRightCount(lrcnr.leftCount())
+
+	nm.setLeftChild(lcnr.leftChild())
+	nm.setLeftCount(lcnr.leftCount())
+
+	nlc := nm.Address
 
 	nlccount, err := Count(s, nlc)
 	if err != nil {
@@ -101,18 +107,18 @@ func doubleRight(s store.Store, k store.Address) (store.Address, error) {
 		return store.NilAddress, errors.Wrap(err, "while getting count of c'")
 	}
 
-	return s.Append(0,func(f store.Segment) error {
-		nm := newNodeModifier(f)
+	nm, err = newNodeModifier(s, lrcnr.key())
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+	}
 
-		nm.setValue(lrcnr.value())
-		nm.setKey(lrcnr.key())
+	nm.setValue(lrcnr.value())
 
-		nm.setRightCount(nrccount)
-		nm.setRightChild(nrc)
+	nm.setRightCount(nrccount)
+	nm.setRightChild(nrc)
 
-		nm.setLeftCount(nlccount)
-		nm.setLeftChild(nlc)
+	nm.setLeftCount(nlccount)
+	nm.setLeftChild(nlc)
 
-		return firstError(lrcnr.err, nm.err)
-	})
+	return nm.Address, nil
 }

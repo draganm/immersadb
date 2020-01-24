@@ -1,7 +1,7 @@
 package wbbtree
 
 import (
-	"bytes"	
+	"bytes"
 	"github.com/draganm/immersadb/store"
 	"github.com/pkg/errors"
 
@@ -15,17 +15,20 @@ func Search(s store.Store, root store.Address, key []byte) (store.Address, error
 		return store.NilAddress, ErrNotFound
 	}
 
-	nr := newNodeReader(s, root)
+	nr, err := newNodeReader(s, root)
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
+	}
 
 	cmp := bytes.Compare(key, nr.key())
 
 	if cmp == 0 {
-		return nr.value(), nr.err()
+		return nr.value(), nil
 	}
 
 	switch cmp {
 	case 0:
-		return nr.value(), nr.err()
+		return nr.value(), nil
 	case -1:
 		return Search(s, nr.leftChild(), key)
 	case 1:

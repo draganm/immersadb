@@ -2,6 +2,7 @@ package data_test
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -51,12 +52,9 @@ func TestStore(t *testing.T) {
 		k, err := dw.Finish()
 		require.NoError(t, err)
 
-		f, err := st.Get(k)
-		require.False(t, f.HasChildren(), "segment should not have children")
-		d, err := f.Specific().DataLeaf()
-		require.NoError(t, err)
-
-		require.Equal(t, []byte{1, 2, 3}, d)
+		sr := st.GetSegment(k)
+		require.True(t, sr.NumberOfChildren() == 0, "segment should not have children")
+		require.Equal(t, []byte{1, 2, 3}, sr.GetData())
 
 	})
 
@@ -75,45 +73,29 @@ func TestStore(t *testing.T) {
 
 		require.NoError(t, err)
 
-		f, err := st.Get(k)
+		sr := st.GetSegment(k)
 
-		require.Equal(t, store.Segment_specific_Which_dataNode, f.Specific().Which(), "should be a data node segment")
+		require.Equal(t, store.TypeDataNode, sr.Type(), "should be a data node segment")
 
-		count := f.Specific().DataNode()
+		count := binary.BigEndian.Uint64(sr.GetData())
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(4), count, "data node should record total size of 4")
 
-		require.True(t, f.HasChildren(), "segment should have children")
-
-		ch, err := f.Children()
-		require.NoError(t, err)
-
-		require.Equal(t, 2, ch.Len(), "should have two children")
+		require.Equal(t, 2, sr.NumberOfChildren(), "should have two children")
 
 		t.Run("first child should have first 3 bytes", func(t *testing.T) {
-			ck := ch.At(0)
 
-			cf, err := st.Get(store.Address(ck))
-			require.NoError(t, err)
+			cr := st.GetSegment(sr.GetChildAddress(0))
 
-			d, err := cf.Specific().DataLeaf()
-			require.NoError(t, err)
-
-			require.Equal(t, []byte{1, 2, 3}, d)
+			require.Equal(t, []byte{1, 2, 3}, cr.GetData())
 
 		})
 
 		t.Run("second child should have last byte", func(t *testing.T) {
-			ck := ch.At(1)
+			cr := st.GetSegment(sr.GetChildAddress(1))
 
-			cf, err := st.Get(store.Address(ck))
-			require.NoError(t, err)
-
-			d, err := cf.Specific().DataLeaf()
-			require.NoError(t, err)
-
-			require.Equal(t, []byte{4}, d)
+			require.Equal(t, []byte{4}, cr.GetData())
 
 		})
 
@@ -142,13 +124,11 @@ func TestStore(t *testing.T) {
 		k, err := dw.Finish()
 		require.NoError(t, err)
 
-		f, err := st.Get(k)
+		sr := st.GetSegment(k)
 
-		require.Equal(t, store.Segment_specific_Which_dataNode, f.Specific().Which(), "should be a data node segment")
+		require.Equal(t, store.TypeDataNode, sr.Type(), "should be a data node segment")
 
-		size := f.Specific().DataNode()
-		require.NoError(t, err)
-
+		size := binary.BigEndian.Uint64(sr.GetData())
 		require.Equal(t, uint64(4), size, "data node should record total size of 4")
 
 		t.Run("reading data should return original data", func(t *testing.T) {

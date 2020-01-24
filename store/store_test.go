@@ -25,28 +25,19 @@ func TestStore(t *testing.T) {
 	st := store.Store{l0, l1}
 
 	t.Run("when I append a segment to l0", func(t *testing.T) {
-		a, err := st.Append(0, func(s store.Segment) error {
-			return nil
-		})
+		sw, err := st.CreateSegment(0, 0, 0)
 		require.NoError(t, err)
 
 		t.Run("it should return an address in l0", func(t *testing.T) {
-			require.Equal(t, 0, a.Segment())
+			require.Equal(t, 0, sw.Address.Segment())
 		})
 
 		t.Run("it should return a position in l0", func(t *testing.T) {
-			require.Equal(t, uint64(0), a.Position())
-		})
-
-		t.Run("I should be able to get the segment", func(t *testing.T) {
-			_, err = st.Get(a)
-			require.NoError(t, err)
+			require.Equal(t, uint64(0), sw.Address.Position())
 		})
 
 		t.Run("when I append another segment to l0", func(t *testing.T) {
-			a2, err := st.Append(0, func(s store.Segment) error {
-				return nil
-			})
+			a2, err := st.CreateSegment(0, 0, 0)
 			require.NoError(t, err)
 
 			t.Run("it should return an address in l0", func(t *testing.T) {
@@ -54,7 +45,7 @@ func TestStore(t *testing.T) {
 			})
 
 			t.Run("it should return a position in l0", func(t *testing.T) {
-				require.Equal(t, uint64(56), a2.Position())
+				require.Equal(t, uint64(0x26), a2.Position())
 			})
 		})
 

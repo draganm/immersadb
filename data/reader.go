@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/draganm/immersadb/store"
@@ -36,7 +35,6 @@ func (r *reader) Read(p []byte) (n int, err error) {
 			return 0, err
 		}
 
-		fmt.Printf("block: 0x%x\n", r.currentBlock)
 	}
 
 	n = len(p)
@@ -62,26 +60,18 @@ func (r *reader) nextBlock() error {
 	keys[0] = r.root
 
 	for i := 0; ; i++ {
-		df, err := r.store.Get(keys[i])
-		if err != nil {
-			return errors.Wrap(err, "while reading data segment")
-		}
+		sr := r.store.GetSegment(keys[i])
 
-		switch df.Specific().Which() {
-		case store.Segment_specific_Which_dataNode:
-			ch, err := df.Children()
+		switch sr.Type() {
+		case store.TypeDataNode:
 
-			if err != nil {
-				return errors.Wrap(err, "while getting children of data node segment")
-			}
-
-			if ch.Len() == 0 {
+			if sr.NumberOfChildren() == 0 {
 				return errors.Errorf("found data node with 0 children")
 			}
 
 			idx := r.path[i]
 
-			if idx >= ch.Len() {
+			if idx >= sr.NumberOfChildren() {
 				// oops, drop last, increase second but last
 
 				if i == 0 {
@@ -96,21 +86,17 @@ func (r *reader) nextBlock() error {
 				continue
 			}
 
-			kb := ch.At(idx)
+			kb := sr.GetChildAddress(idx)
 			keys[i+1] = store.Address(kb)
 
-		case store.Segment_specific_Which_dataLeaf:
-			data, err := df.Specific().DataLeaf()
-			if err != nil {
-				return errors.Wrap(err, "while getting first data leaf data")
-			}
+		case store.TypeDataLeaf:
 
-			r.currentBlock = data
+			r.currentBlock = sr.GetData()
 
 			return nil
 
 		default:
-			return errors.Errorf("Unexpected segment while reading data %s", df.Specific().Which())
+			return errors.Errorf("Unexpected segment while reading data %s", sr.Type())
 		}
 	}
 
@@ -121,39 +107,27 @@ func (r *reader) firstBlock() error {
 	k := r.root
 
 	for {
-		df, err := r.store.Get(k)
-		if err != nil {
-			return errors.Wrap(err, "while reading data segment")
-		}
+		sr := r.store.GetSegment(k)
 
-		switch df.Specific().Which() {
-		case store.Segment_specific_Which_dataNode:
+		switch sr.Type() {
+		case store.TypeDataNode:
 			r.path = append(r.path, 0)
-			ch, err := df.Children()
 
-			if err != nil {
-				return errors.Wrap(err, "while getting children of data node segment")
-			}
-
-			if ch.Len() == 0 {
+			if sr.NumberOfChildren() == 0 {
 				return errors.Errorf("found data node with 0 children")
 			}
 
-			kb := ch.At(0)
+			kb := sr.GetChildAddress(0)
 			k = store.Address(kb)
 
-		case store.Segment_specific_Which_dataLeaf:
-			data, err := df.Specific().DataLeaf()
-			if err != nil {
-				return errors.Wrap(err, "while getting first data leaf data")
-			}
+		case store.TypeDataLeaf:
 
-			r.currentBlock = data
+			r.currentBlock = sr.GetData()
 
 			return nil
 
 		default:
-			return errors.Errorf("Unexpected segment while reading data %q", df.Specific().Which())
+			return errors.Errorf("Unexpected segment while reading data %q", sr.Type())
 		}
 	}
 

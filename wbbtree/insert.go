@@ -17,36 +17,35 @@ func Insert(s store.Store, root store.Address, key []byte, value store.Address) 
 
 func insert(s store.Store, root store.Address, key []byte, value store.Address) (store.Address, error) {
 	if root == store.NilAddress {
-		return s.Append(0,func(f store.Segment) error {
-			nm := newNodeModifier(f)
-			nm.setKey(key)
-			nm.setValue(value)
-			return nm.err()
-		})
+		nm, err := newNodeModifier(s, key)
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+		}
+
+		nm.setValue(value)
+		return nm.Address, nil
 	}
 
-	nr := newNodeReader(s, root)
+	nr, err := newNodeReader(s, root)
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
+	}
 
 	cmp := bytes.Compare(key, nr.key())
 
 	switch cmp {
 	case 0:
-		return s.Append(0,func(f store.Segment) error {
-			nm := newNodeModifier(f)
-			nm.setLeftChild(nr.leftChild())
-			nm.setRightChild(nr.rightChild())
-			nm.setLeftCount(nr.leftCount())
-			nm.setRightCount(nr.rightCount())
-			nm.setKey(nr.key())
+		nm, err := newNodeModifier(s, nr.key())
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+		}
+		nm.setLeftChild(nr.leftChild())
+		nm.setRightChild(nr.rightChild())
+		nm.setLeftCount(nr.leftCount())
+		nm.setRightCount(nr.rightCount())
+		nm.setValue(value)
 
-			nm.setValue(value)
-
-			if nr.err() != nil {
-				return nr.err()
-			}
-
-			return nm.err()
-		})
+		return nm.Address, nil
 
 	case -1:
 		newLeft, err := Insert(s, nr.leftChild(), key, value)
@@ -54,27 +53,24 @@ func insert(s store.Store, root store.Address, key []byte, value store.Address) 
 			return store.NilAddress, err
 		}
 
-		return s.Append(0,func(f store.Segment) error {
-			nm := newNodeModifier(f)
-			nm.setRightChild(nr.rightChild())
-			nm.setRightCount(nr.rightCount())
-			nm.setKey(nr.key())
-			nm.setValue(nr.value())
+		nm, err := newNodeModifier(s, nr.key())
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+		}
 
-			nm.setLeftChild(newLeft)
-			nc, err := Count(s, newLeft)
-			if err != nil {
-				return err
-			}
+		nm.setRightChild(nr.rightChild())
+		nm.setRightCount(nr.rightCount())
+		nm.setValue(nr.value())
 
-			nm.setLeftCount(nc)
+		nm.setLeftChild(newLeft)
+		nc, err := Count(s, newLeft)
+		if err != nil {
+			return store.NilAddress, err
+		}
 
-			if nr.err() != nil {
-				return nr.err()
-			}
+		nm.setLeftCount(nc)
 
-			return nm.err()
-		})
+		return nm.Address, nil
 
 	case 1:
 		newRight, err := Insert(s, nr.rightChild(), key, value)
@@ -82,29 +78,25 @@ func insert(s store.Store, root store.Address, key []byte, value store.Address) 
 			return store.NilAddress, err
 		}
 
-		return s.Append(0,func(f store.Segment) error {
-			nm := newNodeModifier(f)
-			nm.setLeftChild(nr.leftChild())
-			nm.setLeftCount(nr.leftCount())
-			nm.setKey(nr.key())
-			nm.setValue(nr.value())
+		nm, err := newNodeModifier(s, nr.key())
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+		}
 
-			nm.setRightChild(newRight)
+		nm.setLeftChild(nr.leftChild())
+		nm.setLeftCount(nr.leftCount())
+		nm.setValue(nr.value())
 
-			nc, err := Count(s, newRight)
-			if err != nil {
-				return err
-			}
+		nm.setRightChild(newRight)
 
-			nm.setRightCount(nc)
+		nc, err := Count(s, newRight)
+		if err != nil {
+			return store.NilAddress, err
+		}
 
-			if nr.err() != nil {
-				return nr.err()
-			}
+		nm.setRightCount(nc)
 
-			return nm.err()
-		})
-
+		return nm.Address, nil
 	default:
 		return store.NilAddress, errors.New("should never be reached")
 	}

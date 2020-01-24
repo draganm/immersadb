@@ -35,7 +35,7 @@ func TestSegmentWriter(t *testing.T) {
 	st, cleanup := createTestStore(t)
 	defer cleanup()
 
-	sw, err := store.NewSegmentWriter(st, 0, 3, 3)
+	sw, err := store.NewSegmentWriter(st, store.TypeDataLeaf, 3, 3)
 	require.NoError(t, err)
 
 	t.Run("segment children should have Nil Address", func(t *testing.T) {
@@ -51,6 +51,10 @@ func TestSegmentWriter(t *testing.T) {
 
 	t.Run("total tree size should be set", func(t *testing.T) {
 		require.Equal(t, uint64(4+1+4*8+1+8*3+3), sw.GetTotalTreeSize())
+	})
+
+	t.Run("segment type should be set", func(t *testing.T) {
+		require.Equal(t, store.TypeDataLeaf, sw.Type())
 	})
 
 	t.Run("when I change the data", func(t *testing.T) {

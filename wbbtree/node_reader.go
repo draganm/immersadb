@@ -1,142 +1,61 @@
 package wbbtree
 
 import (
+	"encoding/binary"
 	"github.com/draganm/immersadb/store"
 	"github.com/pkg/errors"
 )
 
-type nodeReader struct {
-	f store.Segment
-	e error
+type nodeReader store.SegmentReader
+
+func newNodeReader(st store.Store, a store.Address) (nodeReader, error) {
+	sr := st.GetSegment(a)
+	if sr.Type() != store.TypeWBBTreeNode {
+		return nodeReader{}, errors.New("Segment is not a WBBTreeNode")
+	}
+	if sr.NumberOfChildren() != 3 {
+		return nodeReader{}, errors.New("segment does not have 3 children")
+	}
+
+	if len(sr.GetData()) < 16 {
+		return nodeReader{}, errors.New("segment must have at least 16 bytes")
+	}
+
+	return nodeReader(sr), nil
 }
 
-func newNodeReader(st store.Store, k store.Address) *nodeReader {
-
-	nr := &nodeReader{store.Segment{}, nil}
-
-	f, err := st.Get(k)
-	if err != nil {
-		nr.setError(errors.Wrapf(err, "while getting segment with key %s", k))
-		return nr
-	}
-
-	nr.f = f
-
-	if f.Specific().Which() != store.Segment_specific_Which_wbbtreeNode {
-		nr.setError(errors.Errorf("Wrong type of segment: %s", f.Specific().Which()))
-		return nr
-	}
-
-	ch, err := f.Children()
-	if err != nil {
-		nr.setError(errors.Wrap(err, "while getting wbbtree segment children"))
-		return nr
-	}
-
-	if ch.Len() != 3 {
-		nr.setError(errors.Wrapf(err, "Expected wbbtree segment to have 3 children, but got %d", ch.Len()))
-		return nr
-	}
-
-	return nr
+func (n nodeReader) segmentReader() store.SegmentReader {
+	return store.SegmentReader(n)
 }
 
-func (n *nodeReader) err() error {
-	return n.e
+func (n nodeReader) leftChild() store.Address {
+	return n.segmentReader().GetChildAddress(0)
 }
 
-func (n *nodeReader) setError(err error) {
-	if n.e == nil {
-		n.e = err
-	}
+func (n nodeReader) rightChild() store.Address {
+	return n.segmentReader().GetChildAddress(1)
 }
 
-func (n *nodeReader) leftChild() store.Address {
-	if n.e != nil {
-		return store.NilAddress
-	}
-
-	ch, err := n.f.Children()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree segment children"))
-		return store.NilAddress
-	}
-
-	return store.Address(ch.At(0))
+func (n nodeReader) value() store.Address {
+	return n.segmentReader().GetChildAddress(2)
 }
 
-func (n *nodeReader) rightChild() store.Address {
-	if n.e != nil {
-		return store.NilAddress
-	}
-
-	ch, err := n.f.Children()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree segment children"))
-		return store.NilAddress
-	}
-
-	return store.Address(ch.At(1))
+func (n nodeReader) key() []byte {
+	return n.segmentReader().GetData()[16:]
 }
 
-func (n *nodeReader) value() store.Address {
-	if n.e != nil {
-		return store.NilAddress
-	}
-
-	ch, err := n.f.Children()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree segment children"))
-		return store.NilAddress
-	}
-
-	return store.Address(ch.At(2))
+func (n nodeReader) leftCount() uint64 {
+	return binary.BigEndian.Uint64(n.segmentReader().GetData())
 }
 
-func (n *nodeReader) key() []byte {
-	if n.e != nil {
-		return nil
-	}
-
-	tn, err := n.f.Specific().WbbtreeNode()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree node data"))
-		return nil
-	}
-
-	k, err := tn.Key()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree node key"))
-		return nil
-	}
-
-	return k
+func (n nodeReader) rightCount() uint64 {
+	return binary.BigEndian.Uint64(n.segmentReader().GetData()[8:])
 }
 
-func (n *nodeReader) leftCount() uint64 {
-	if n.e != nil {
-		return 0
-	}
-
-	tn, err := n.f.Specific().WbbtreeNode()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree node data"))
-		return 0
-	}
-
-	return tn.CountLeft()
-}
-
-func (n *nodeReader) rightCount() uint64 {
-	if n.e != nil {
-		return 0
-	}
-
-	tn, err := n.f.Specific().WbbtreeNode()
-	if err != nil {
-		n.setError(errors.Wrap(err, "while getting wbbtree node data"))
-		return 0
-	}
-
-	return tn.CountRight()
-}
+// func (n nodeReader) createCopy(st store.Store) (nodeModifier, error) {
+// 	sr := n.segmentReader()
+// 	sw, err := st.CreateSegment(sr.Type(), sr.NumberOfChildren(),len(sr.GetData())
+// 	if err != nil {
+// 		return nodeModifier{}, errors.Wrap(err, "while creating new segment")
+// 	}
+// }

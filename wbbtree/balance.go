@@ -2,6 +2,7 @@ package wbbtree
 
 import (
 	"github.com/draganm/immersadb/store"
+	"github.com/pkg/errors"
 )
 
 const weight = 4
@@ -11,26 +12,25 @@ func balance(s store.Store, k store.Address) (store.Address, error) {
 		return k, nil
 
 	}
-	nr := newNodeReader(s, k)
+	nr, err := newNodeReader(s, k)
+	if err != nil {
+		return store.NilAddress, errors.Wrap(err, "while creating node reader")
+	}
 	ln := nr.leftCount()
 	rn := nr.rightCount()
-
-	if nr.err() != nil {
-		return store.NilAddress, nr.err()
-	}
 
 	if ln+rn <= 2 {
 		return k, nil
 	}
 
 	if rn > weight*ln { // right is too big
-		rnnr := newNodeReader(s, nr.rightChild())
+		rnnr, err := newNodeReader(s, nr.rightChild())
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node reader")
+		}
+
 		rln := rnnr.leftCount()
 		rrn := rnnr.rightCount()
-
-		if rnnr.err() != nil {
-			return store.NilAddress, rnnr.err()
-		}
 
 		if rln < rrn {
 			return singleLeft(s, k)
@@ -40,13 +40,12 @@ func balance(s store.Store, k store.Address) (store.Address, error) {
 	}
 
 	if ln > weight*rn { // left is too big
-		lnnr := newNodeReader(s, nr.leftChild())
+		lnnr, err := newNodeReader(s, nr.leftChild())
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node reader")
+		}
 		lln := lnnr.leftCount()
 		lrn := lnnr.rightCount()
-
-		if lnnr.err() != nil {
-			return store.NilAddress, lnnr.err()
-		}
 
 		if lrn < lln {
 			return singleRight(s, k)
@@ -64,7 +63,10 @@ func IsBalanced(s store.Store, root store.Address) (bool, error) {
 		return true, nil
 	}
 
-	nr := newNodeReader(s, root)
+	nr, err := newNodeReader(s, root)
+	if err != nil {
+		return false, errors.Wrap(err, "while creating node reader")
+	}
 
 	lcnt := nr.leftCount()
 	rcnt := nr.rightCount()
@@ -73,18 +75,11 @@ func IsBalanced(s store.Store, root store.Address) (bool, error) {
 		return true, nil
 	}
 
-	if nr.err() != nil {
-		return false, nr.err()
-	}
-
 	if lcnt > weight*rcnt {
 		return false, nil
 	}
 
 	lc := nr.leftChild()
-	if nr.err() != nil {
-		return false, nr.err()
-	}
 
 	bal, err := IsBalanced(s, lc)
 	if err != nil {
@@ -96,10 +91,6 @@ func IsBalanced(s store.Store, root store.Address) (bool, error) {
 	}
 
 	rc := nr.rightChild()
-
-	if nr.err() != nil {
-		return false, nr.err()
-	}
 
 	return IsBalanced(s, rc)
 }

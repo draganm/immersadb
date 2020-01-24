@@ -2,6 +2,7 @@ package wbbtree
 
 import (
 	"github.com/draganm/immersadb/store"
+	"github.com/pkg/errors"
 )
 
 func ForEach(s store.Store, root store.Address, f func([]byte, store.Address) error) error {
@@ -9,17 +10,17 @@ func ForEach(s store.Store, root store.Address, f func([]byte, store.Address) er
 		return nil
 	}
 
-	nr := newNodeReader(s, root)
+	nr, err := newNodeReader(s, root)
+	if err != nil {
+		return errors.Wrap(err, "while creating node reader")
+	}
+
 	lc := nr.leftChild()
 	rc := nr.rightChild()
 	k := nr.key()
 	v := nr.value()
 
-	if nr.err() != nil {
-		return nr.err()
-	}
-
-	err := ForEach(s, lc, f)
+	err = ForEach(s, lc, f)
 	if err != nil {
 		return err
 	}

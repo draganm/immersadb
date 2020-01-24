@@ -11,14 +11,14 @@ type SegmentWriter struct {
 	Address
 }
 
-func NewSegmentWriter(st Store, segmentType byte, numberOfChildren int, dataSize int) (SegmentWriter, error) {
+func NewSegmentWriter(st Store, segmentType SegmentType, numberOfChildren int, dataSize int) (SegmentWriter, error) {
 	pos, d, err := st[0].Allocate(4 + 1 + 4*8 + 1 + 8*numberOfChildren + dataSize)
 	if err != nil {
 		return SegmentWriter{}, errors.Wrap(err, "while creating segment writer")
 	}
 
 	binary.BigEndian.PutUint32(d, uint32(len(d)))
-	d[4] = segmentType
+	d[4] = byte(segmentType)
 
 	binary.BigEndian.PutUint64(d[4+1:], uint64(len(d)))
 
@@ -49,10 +49,6 @@ func (s SegmentWriter) SetLayerTotalSize(i int, newSize uint64) {
 }
 
 func (s SegmentWriter) SetChild(i int, addr Address) {
-
-	// segmentData := s.st.GetSegment(addr)
-
-	// numberOfChildren := int(s.seg[4+1+4*8])
 
 	if i >= s.NumberOfChildren() {
 		panic("trying to set child that segment does not have")

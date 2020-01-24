@@ -2,6 +2,7 @@ package wbbtree
 
 import (
 	"github.com/draganm/immersadb/store"
+	"github.com/pkg/errors"
 )
 
 func Count(f store.Store, root store.Address) (uint64, error) {
@@ -9,6 +10,9 @@ func Count(f store.Store, root store.Address) (uint64, error) {
 		return 0, nil
 	}
 
-	nr := newNodeReader(f, root)
-	return nr.leftCount() + nr.rightCount() + 1, nr.err()
+	nr, err := newNodeReader(f, root)
+	if err != nil {
+		return 0, errors.Wrap(err, "while creating node reader")
+	}
+	return nr.leftCount() + nr.rightCount() + 1, nil
 }

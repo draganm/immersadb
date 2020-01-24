@@ -80,3 +80,7 @@ func (s SegmentReader) GetTotalTreeSize() uint64 {
 	}
 	return totalSize
 }
+
+func (s SegmentReader) Type() SegmentType {
+	return SegmentType(s[4])
+}
