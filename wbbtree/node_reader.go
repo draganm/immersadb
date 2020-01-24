@@ -13,6 +13,12 @@ func newNodeReader(st store.Store, a store.Address) (nodeReader, error) {
 	if sr.Type() != store.TypeWBBTreeNode {
 		return nodeReader{}, errors.New("Segment is not a WBBTreeNode")
 	}
+
+	if sr.NumberOfChildren() == 0 && len(sr.GetData()) == 0 {
+		// empty node
+		return nodeReader(sr), nil
+	}
+
 	if sr.NumberOfChildren() != 3 {
 		return nodeReader{}, errors.New("segment does not have 3 children")
 	}
@@ -50,4 +56,9 @@ func (n nodeReader) leftCount() uint64 {
 
 func (n nodeReader) rightCount() uint64 {
 	return binary.BigEndian.Uint64(n.segmentReader().GetData()[8:])
+}
+
+func (n nodeReader) isEmpty() bool {
+	sr := n.segmentReader()
+	return sr.NumberOfChildren() == 0
 }

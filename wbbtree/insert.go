@@ -31,6 +31,16 @@ func insert(s store.Store, root store.Address, key []byte, value store.Address) 
 		return store.NilAddress, errors.Wrap(err, "while creating node reader")
 	}
 
+	if nr.isEmpty() {
+		nm, err := newNodeModifier(s, key)
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while creating node modifier")
+		}
+
+		nm.setValue(value)
+		return nm.Address, nil
+	}
+
 	cmp := bytes.Compare(key, nr.key())
 
 	switch cmp {

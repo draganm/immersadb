@@ -20,6 +20,10 @@ func Search(s store.Store, root store.Address, key []byte) (store.Address, error
 		return store.NilAddress, errors.Wrap(err, "while creating node reader")
 	}
 
+	if nr.isEmpty() {
+		return store.NilAddress, ErrNotFound
+	}
+
 	cmp := bytes.Compare(key, nr.key())
 
 	if cmp == 0 {

@@ -15,6 +15,10 @@ func ForEach(s store.Store, root store.Address, f func([]byte, store.Address) er
 		return errors.Wrap(err, "while creating node reader")
 	}
 
+	if nr.isEmpty() {
+		return nil
+	}
+
 	lc := nr.leftChild()
 	rc := nr.rightChild()
 	k := nr.key()
