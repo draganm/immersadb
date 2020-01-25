@@ -94,3 +94,12 @@ func (s *SegmentFile) Allocate(size int) (uint64, []byte, error) {
 	s.nextFreeByte += int64(size)
 	return uint64(start), s.MMap[int(start) : int(start)+size], nil
 }
+
+func (s *SegmentFile) CloseAndDelete() error {
+	err := s.Close()
+	if err != nil {
+		return errors.Wrap(err, "while closing layer")
+	}
+
+	return os.Remove(s.f.Name())
+}

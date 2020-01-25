@@ -11,12 +11,12 @@ import (
 )
 
 type Transaction struct {
-	st   store.Store
-	root store.Address
+	*ReadTransaction
+	db *DB
 }
 
-func newTransaction(st store.Store, root store.Address, dir string) (*Transaction, error) {
-	txFilePath := filepath.Join(dir, "transaction")
+func newTransaction(st store.Store, root store.Address, db *DB) (*Transaction, error) {
+	txFilePath := filepath.Join(db.dir, "transaction")
 	// TODO what's a meaningful size of the tx segment file?
 	// auto-extending anonymous mmap?
 
@@ -30,8 +30,11 @@ func newTransaction(st store.Store, root store.Address, dir string) (*Transactio
 	txStore[0] = l0
 
 	return &Transaction{
-		st:   txStore,
-		root: root,
+		ReadTransaction: &ReadTransaction{
+			st:   txStore,
+			root: root,
+		},
+		db: db,
 	}, nil
 
 }
@@ -92,28 +95,6 @@ func modifyPath(st store.Store, ad store.Address, path []string, f func(ad store
 
 }
 
-func (t *Transaction) Count(path string) (uint64, error) {
-	pa, err := t.pathElementAddress(path)
-	if err != nil {
-		return 0, err
-	}
-	return wbbtree.Count(t.st, pa)
-}
-
-func (t *Transaction) pathElementAddress(path string) (store.Address, error) {
-	parts, err := dbpath.Split(path)
-	if err != nil {
-		return store.NilAddress, err
-	}
-
-	ad := t.root
-
-	for _, p := range parts[:len(parts)] {
-		ad, err = wbbtree.Search(t.st, ad, []byte(p))
-		if err != nil {
-			return store.NilAddress, err
-		}
-	}
-
-	return ad, nil
+func (t *Transaction) Commit() error {
+	return t.db.commit(t.st[0], t.root)
 }

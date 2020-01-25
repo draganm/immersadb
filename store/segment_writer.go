@@ -32,7 +32,7 @@ func NewSegmentWriter(layer int, st Store, segmentType SegmentType, numberOfChil
 		st:            st,
 		SegmentReader: NewSegmentReader(d),
 		Data:          d[4+1+4*8+1+8*numberOfChildren:],
-		Address:       NewAddress(0, pos),
+		Address:       NewAddress(layer, pos),
 	}, nil
 }
 

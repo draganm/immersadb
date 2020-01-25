@@ -57,11 +57,13 @@ func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, err
 
 	for i := 0; i < nc; i++ {
 		ca := sr.GetChildAddress(i)
-		nca, err := executeGCPlan(s, ns, ca, plan)
-		if err != nil {
-			return NilAddress, err
+		if ca != NilAddress {
+			nca, err := executeGCPlan(s, ns, ca, plan)
+			if err != nil {
+				return NilAddress, err
+			}
+			wr.SetChild(i, nca)
 		}
-		wr.SetChild(i, nca)
 	}
 
 	return wr.Address, nil

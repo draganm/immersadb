@@ -54,6 +54,16 @@ func TestDatabaseCreation(t *testing.T) {
 				})
 			})
 
+			t.Run("when I commit the transaction", func(t *testing.T) {
+				err = tx.Commit()
+				require.NoError(t, err)
+				t.Run("then the new map should be persisted", func(t *testing.T) {
+					cnt, err := db.ReadTransaction().Count("")
+					require.NoError(t, err)
+					require.Equal(t, uint64(1), cnt)
+				})
+			})
+
 		})
 	})
 }

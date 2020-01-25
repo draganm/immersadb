@@ -80,6 +80,16 @@ func Open(path string) (*DB, error) {
 	}, nil
 }
 
+func (db *DB) ReadTransaction() *ReadTransaction {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	return &ReadTransaction{
+		db.st,
+		db.root,
+	}
+}
+
 func (db *DB) Transaction() (*Transaction, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -88,7 +98,7 @@ func (db *DB) Transaction() (*Transaction, error) {
 		return nil, errors.New("there is already a transaction in progress")
 	}
 
-	tx, err := newTransaction(db.st, db.root, db.dir)
+	tx, err := newTransaction(db.st, db.root, db)
 	if err != nil {
 		return nil, errors.Wrap(err, "while creating transaction")
 	}
@@ -96,4 +106,31 @@ func (db *DB) Transaction() (*Transaction, error) {
 	db.txActive = true
 
 	return tx, nil
+}
+
+func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
+	defer l0.CloseAndDelete()
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if !db.txActive {
+		return errors.New("cannot commit, no transaction was active")
+	}
+
+	db.txActive = false
+
+	txStore := make(store.Store, len(db.st))
+	copy(txStore, db.st)
+	txStore[0] = l0
+
+	newDBRoot, _, err := txStore.Commit(newRoot)
+	if err != nil {
+		return errors.Wrap(err, "while commiting transaction")
+	}
+
+	db.root = newDBRoot
+	// TODO: write the root file!
+
+	return nil
+
 }
