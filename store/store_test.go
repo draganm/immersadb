@@ -25,7 +25,7 @@ func TestStore(t *testing.T) {
 	st := store.Store{l0, l1}
 
 	t.Run("when I append a segment to l0", func(t *testing.T) {
-		sw, err := st.CreateSegment(0, 0, 0)
+		sw, err := st.CreateSegment(0, 0, 0, 0)
 		require.NoError(t, err)
 
 		t.Run("it should return an address in l0", func(t *testing.T) {
@@ -37,7 +37,7 @@ func TestStore(t *testing.T) {
 		})
 
 		t.Run("when I append another segment to l0", func(t *testing.T) {
-			a2, err := st.CreateSegment(0, 0, 0)
+			a2, err := st.CreateSegment(0, 0, 0, 0)
 			require.NoError(t, err)
 
 			t.Run("it should return an address in l0", func(t *testing.T) {

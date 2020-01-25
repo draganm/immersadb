@@ -26,6 +26,6 @@ func (s Store) GetSegment(a Address) SegmentReader {
 
 }
 
-func (s Store) CreateSegment(segmentType SegmentType, numberOfChildren int, dataSize int) (SegmentWriter, error) {
-	return NewSegmentWriter(s, segmentType, numberOfChildren, dataSize)
+func (s Store) CreateSegment(layer int, segmentType SegmentType, numberOfChildren int, dataSize int) (SegmentWriter, error) {
+	return NewSegmentWriter(layer, s, segmentType, numberOfChildren, dataSize)
 }

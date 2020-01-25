@@ -35,7 +35,7 @@ func TestSegmentWriter(t *testing.T) {
 	st, cleanup := createTestStore(t)
 	defer cleanup()
 
-	sw, err := store.NewSegmentWriter(st, store.TypeDataLeaf, 3, 3)
+	sw, err := store.NewSegmentWriter(0, st, store.TypeDataLeaf, 3, 3)
 	require.NoError(t, err)
 
 	t.Run("segment children should have Nil Address", func(t *testing.T) {
@@ -65,7 +65,7 @@ func TestSegmentWriter(t *testing.T) {
 	})
 
 	t.Run("when I write another segment", func(t *testing.T) {
-		sw2, err := store.NewSegmentWriter(st, 0, 1, 3)
+		sw2, err := store.NewSegmentWriter(0, st, 0, 1, 3)
 		require.NoError(t, err)
 
 		t.Run("it should have different address than the first segment", func(t *testing.T) {

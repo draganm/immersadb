@@ -11,8 +11,8 @@ type SegmentWriter struct {
 	Address
 }
 
-func NewSegmentWriter(st Store, segmentType SegmentType, numberOfChildren int, dataSize int) (SegmentWriter, error) {
-	pos, d, err := st[0].Allocate(4 + 1 + 4*8 + 1 + 8*numberOfChildren + dataSize)
+func NewSegmentWriter(layer int, st Store, segmentType SegmentType, numberOfChildren int, dataSize int) (SegmentWriter, error) {
+	pos, d, err := st[layer].Allocate(4 + 1 + 4*8 + 1 + 8*numberOfChildren + dataSize)
 	if err != nil {
 		return SegmentWriter{}, errors.Wrap(err, "while creating segment writer")
 	}

@@ -59,6 +59,6 @@ func (n nodeReader) rightCount() uint64 {
 }
 
 func (n nodeReader) isEmpty() bool {
-	sr := n.segmentReader()
-	return sr.NumberOfChildren() == 0
+	// sr := n.segmentReader()
+	return n.leftChild() == store.NilAddress && n.rightChild() == store.NilAddress && n.value() == store.NilAddress
 }

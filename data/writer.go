@@ -40,7 +40,7 @@ func (f *fragmentAggregator) addFragment(k store.Address, size uint64) error {
 
 func (f *fragmentAggregator) toSegment() (store.Address, error) {
 
-	sw, err := f.store.CreateSegment(store.TypeDataNode, len(f.fragments), 8)
+	sw, err := f.store.CreateSegment(0, store.TypeDataNode, len(f.fragments), 8)
 	if err != nil {
 		return store.NilAddress, errors.Wrap(err, "while creating segment")
 	}
@@ -58,7 +58,7 @@ func (f *fragmentAggregator) toSegment() (store.Address, error) {
 func (f *fragmentAggregator) finish() (store.Address, error) {
 	if f.parent == nil {
 		if len(f.fragments) == 0 {
-			sw, err := f.store.CreateSegment(store.TypeDataLeaf, 0, 0)
+			sw, err := f.store.CreateSegment(0, store.TypeDataLeaf, 0, 0)
 
 			if err != nil {
 				return store.NilAddress, errors.Wrap(err, "while creating empty data leaf")
@@ -130,7 +130,7 @@ func (dw *DataWriter) Write(d []byte) (int, error) {
 		}
 
 		if len(dw.buffer) == dw.fragSize {
-			sw, err := dw.store.CreateSegment(store.TypeDataLeaf, 0, len(dw.buffer))
+			sw, err := dw.store.CreateSegment(0, store.TypeDataLeaf, 0, len(dw.buffer))
 			if err != nil {
 				return -1, errors.Wrap(err, "while storing data leaf")
 			}
@@ -148,7 +148,7 @@ func (dw *DataWriter) Write(d []byte) (int, error) {
 
 func (dw *DataWriter) Finish() (store.Address, error) {
 	if len(dw.buffer) > 0 {
-		sw, err := dw.store.CreateSegment(store.TypeDataLeaf, 0, len(dw.buffer))
+		sw, err := dw.store.CreateSegment(0, store.TypeDataLeaf, 0, len(dw.buffer))
 		if err != nil {
 			return store.NilAddress, errors.Wrap(err, "while storing data leaf")
 		}

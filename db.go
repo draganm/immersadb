@@ -14,9 +14,11 @@ import (
 )
 
 type DB struct {
-	root store.Address
-	mu   sync.Mutex
-	st   store.Store
+	root     store.Address
+	st       store.Store
+	txActive bool
+	dir      string
+	mu       sync.Mutex
 }
 
 //  Database file layout:
@@ -52,6 +54,9 @@ func Open(path string) (*DB, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "while creating empty root")
 		}
+
+		rootAddress = store.NewAddress(1, rootAddress.Position())
+
 		d = make([]byte, 8)
 		binary.BigEndian.PutUint64(d, uint64(rootAddress))
 		err = ioutil.WriteFile(rootFileName, d, 0700)
@@ -71,5 +76,24 @@ func Open(path string) (*DB, error) {
 	return &DB{
 		root: rootAddr,
 		st:   st,
+		dir:  path,
 	}, nil
+}
+
+func (db *DB) Transaction() (*Transaction, error) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if db.txActive {
+		// TODO add waiting or optimistic tx here
+		return nil, errors.New("there is already a transaction in progress")
+	}
+
+	tx, err := newTransaction(db.st, db.root, db.dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "while creating transaction")
+	}
+
+	db.txActive = true
+
+	return tx, nil
 }

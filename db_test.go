@@ -21,7 +21,7 @@ func TestDatabaseCreation(t *testing.T) {
 	td, cleanup := createTempDir(t)
 	defer cleanup()
 	t.Run("when I open database with an empty dir", func(t *testing.T) {
-		_, err := immersadb.Open(td)
+		db, err := immersadb.Open(td)
 		require.NoError(t, err)
 		t.Run("It should create layer files and root", func(t *testing.T) {
 			rs, err := os.Stat(filepath.Join(td, "root"))
@@ -36,6 +36,23 @@ func TestDatabaseCreation(t *testing.T) {
 			require.NoError(t, err)
 			_, err = os.Stat(filepath.Join(td, "layer-3"))
 			require.NoError(t, err)
+
+		})
+
+		t.Run("when I start a new transaction", func(t *testing.T) {
+			tx, err := db.Transaction()
+			require.NoError(t, err)
+
+			t.Run("when I create a map in root", func(t *testing.T) {
+				err = tx.CreateMap("test")
+				require.NoError(t, err)
+
+				t.Run("then the root should have 1 element", func(t *testing.T) {
+					cnt, err := tx.Count("")
+					require.NoError(t, err)
+					require.Equal(t, uint64(1), cnt)
+				})
+			})
 
 		})
 	})

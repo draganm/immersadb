@@ -10,7 +10,7 @@ import (
 type nodeModifier store.SegmentWriter
 
 func newNodeModifier(s store.Store, key []byte) (nodeModifier, error) {
-	sw, err := s.CreateSegment(store.TypeWBBTreeNode, 3, 16+len(key))
+	sw, err := s.CreateSegment(0, store.TypeWBBTreeNode, 3, 16+len(key))
 	if err != nil {
 		return nodeModifier{}, errors.Wrap(err, "while creating segment")
 	}
