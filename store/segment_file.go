@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/binary"
 	"os"
 
 	"github.com/edsrzf/mmap-go"
@@ -26,7 +27,7 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 
 	fs, err := f.Stat()
 	if err != nil {
-		return nil, errors.Wrapf(err, "while getting stats of %q", fileName)
+		return nil, errors.Wrapf(err, "while getting stats of file %q", fileName)
 	}
 
 	mm, err := mmap.MapRegion(f, int(maxSize), mmap.RDWR, 0, 0)
@@ -35,12 +36,24 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 		return nil, errors.Wrapf(err, "while mmaping file %q", fileName)
 	}
 
+	offset := int64(0)
+
+	limit := fs.Size()
+
+	for offset+4 < limit {
+		skip := int64(binary.BigEndian.Uint32(mm[offset:]))
+		if skip == int64(0) {
+			break
+		}
+		offset += skip
+	}
+
 	return &SegmentFile{
 		f:            f,
 		MMap:         mm,
 		maxSize:      maxSize,
-		nextFreeByte: fs.Size(),
-		limit:        fs.Size(),
+		nextFreeByte: offset,
+		limit:        limit,
 	}, nil
 }
 
