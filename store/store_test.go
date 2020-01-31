@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/draganm/immersadb/store"
@@ -12,17 +11,11 @@ func TestStore(t *testing.T) {
 	td, cleanup := createTempDir(t)
 	defer cleanup()
 
-	l0, err := store.OpenOrCreateSegmentFile(filepath.Join(td, "l0"), 10*1024*1024)
+	st, err := store.Open(td)
 	require.NoError(t, err)
 
-	defer l0.Close()
-
-	l1, err := store.OpenOrCreateSegmentFile(filepath.Join(td, "l1"), 10*1024*1024)
+	st, err = st.WithTransaction()
 	require.NoError(t, err)
-
-	defer l1.Close()
-
-	st := store.Store{l0, l1}
 
 	t.Run("when I append a segment to l0", func(t *testing.T) {
 		sw, err := st.CreateSegment(0, 0, 0, 0)

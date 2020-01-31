@@ -11,11 +11,12 @@ import (
 const extendStep = 1 * 1024 * 1024
 
 type SegmentFile struct {
-	f            *os.File
-	MMap         mmap.MMap
-	maxSize      uint64
-	nextFreeByte int64
-	limit        int64
+	f                   *os.File
+	MMap                mmap.MMap
+	maxSize             uint64
+	nextFreeByte        int64
+	lastSegmentPosition int64
+	limit               int64
 }
 
 func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, error) {
@@ -40,20 +41,24 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 
 	limit := fs.Size()
 
+	var lastSegmentPosition int64
+
 	for offset+4 < limit {
 		skip := int64(binary.BigEndian.Uint32(mm[offset:]))
 		if skip == int64(0) {
 			break
 		}
 		offset += skip
+		lastSegmentPosition = offset
 	}
 
 	return &SegmentFile{
-		f:            f,
-		MMap:         mm,
-		maxSize:      maxSize,
-		nextFreeByte: offset,
-		limit:        limit,
+		f:                   f,
+		MMap:                mm,
+		maxSize:             maxSize,
+		nextFreeByte:        offset,
+		lastSegmentPosition: lastSegmentPosition,
+		limit:               limit,
 	}, nil
 }
 
@@ -79,21 +84,6 @@ func (s *SegmentFile) Close() error {
 	return s.f.Close()
 }
 
-func (s *SegmentFile) Write(data []byte) (uint64, error) {
-	err := s.ensureSize(int(s.nextFreeByte) + len(data))
-	if err != nil {
-		return 0, errors.Wrap(err, "while ensuring size")
-	}
-
-	copy(s.MMap[s.nextFreeByte:s.limit], data)
-
-	addr := s.nextFreeByte
-
-	s.nextFreeByte += int64(len(data))
-
-	return uint64(addr), nil
-}
-
 func (s *SegmentFile) Flush() error {
 	return s.MMap.Flush()
 }
@@ -105,6 +95,7 @@ func (s *SegmentFile) Allocate(size int) (uint64, []byte, error) {
 	}
 	start := s.nextFreeByte
 	s.nextFreeByte += int64(size)
+	s.lastSegmentPosition = start
 	return uint64(start), s.MMap[int(start) : int(start)+size], nil
 }
 
@@ -115,4 +106,8 @@ func (s *SegmentFile) CloseAndDelete() error {
 	}
 
 	return os.Remove(s.f.Name())
+}
+
+func (s *SegmentFile) IsEmpty() bool {
+	return s.nextFreeByte == 0
 }
