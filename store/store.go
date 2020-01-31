@@ -59,12 +59,12 @@ func ensureLayer(prefix, dir string, infos []os.FileInfo, maxSize uint64) (*Segm
 	var fileName string
 
 	if len(files) == 0 {
-		fileName = filepath.Join(dir, fmt.Sprintf("%s-%s", prefix, ksuid.New().String()))
+		fileName = fmt.Sprintf("%s-%s", prefix, ksuid.New().String())
 	} else {
 		fileName = files[len(files)-1]
 	}
 
-	return OpenOrCreateSegmentFile(fileName, maxSize)
+	return OpenOrCreateSegmentFile(filepath.Join(dir, fileName), maxSize)
 }
 
 type layer struct {
@@ -146,4 +146,16 @@ func (s Store) Root() Address {
 	}
 
 	panic("store is empty")
+}
+
+func (s Store) Close() error {
+	for i, l := range s {
+		if l != nil {
+			err := l.Close()
+			if err != nil {
+				return errors.Wrapf(err, "while closing layer %d", i)
+			}
+		}
+	}
+	return nil
 }

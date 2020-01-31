@@ -48,8 +48,8 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 		if skip == int64(0) {
 			break
 		}
-		offset += skip
 		lastSegmentPosition = offset
+		offset += skip
 	}
 
 	return &SegmentFile{

@@ -19,8 +19,12 @@ func createTempDir(t *testing.T) (string, func() error) {
 func TestDatabaseCreation(t *testing.T) {
 	td, cleanup := createTempDir(t)
 	defer cleanup()
+
+	var db *immersadb.DB
+
 	t.Run("when I open database with an empty dir", func(t *testing.T) {
-		db, err := immersadb.Open(td)
+		var err error
+		db, err = immersadb.Open(td)
 		require.NoError(t, err)
 
 		t.Run("when I start a new transaction", func(t *testing.T) {
@@ -49,5 +53,20 @@ func TestDatabaseCreation(t *testing.T) {
 			})
 
 		})
+	})
+
+	t.Run("when I reopen the database", func(t *testing.T) {
+		err := db.Close()
+		require.NoError(t, err)
+
+		db, err = immersadb.Open(td)
+		require.NoError(t, err)
+
+		t.Run("then the new map should be persisted", func(t *testing.T) {
+			cnt, err := db.ReadTransaction().Count("")
+			require.NoError(t, err)
+			require.Equal(t, uint64(1), cnt)
+		})
+
 	})
 }

@@ -74,6 +74,7 @@ func (db *DB) Transaction() (*Transaction, error) {
 }
 
 func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
+
 	defer l0.CloseAndDelete()
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -98,4 +99,10 @@ func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 
 	return nil
 
+}
+
+func (db *DB) Close() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	return db.st.Close()
 }

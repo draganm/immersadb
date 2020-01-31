@@ -47,13 +47,7 @@ func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, err
 
 	nc := sr.NumberOfChildren()
 
-	d := sr.GetData()
-	wr, err := ns.CreateSegment(a.Segment()+1, sr.Type(), nc, len(d))
-	if err != nil {
-		return NilAddress, errors.Wrapf(err, "while creating segment on layer %d", a.Segment()+1)
-	}
-
-	copy(wr.Data, d)
+	children := []Address{}
 
 	for i := 0; i < nc; i++ {
 		ca := sr.GetChildAddress(i)
@@ -62,9 +56,21 @@ func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, err
 			if err != nil {
 				return NilAddress, err
 			}
-			wr.SetChild(i, nca)
+			children = append(children, nca)
 		}
 	}
+
+	d := sr.GetData()
+	wr, err := ns.CreateSegment(a.Segment()+1, sr.Type(), nc, len(d))
+	if err != nil {
+		return NilAddress, errors.Wrapf(err, "while creating segment on layer %d", a.Segment()+1)
+	}
+
+	for i, ch := range children {
+		wr.SetChild(i, ch)
+	}
+
+	copy(wr.Data, d)
 
 	return wr.Address, nil
 }
