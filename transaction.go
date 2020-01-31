@@ -1,9 +1,8 @@
 package immersadb
 
 import (
-	"path/filepath"
-
 	serrors "errors"
+
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/store"
 	"github.com/draganm/immersadb/wbbtree"
@@ -16,18 +15,11 @@ type Transaction struct {
 }
 
 func newTransaction(st store.Store, root store.Address, db *DB) (*Transaction, error) {
-	txFilePath := filepath.Join(db.dir, "transaction")
-	// TODO what's a meaningful size of the tx segment file?
-	// auto-extending anonymous mmap?
 
-	l0, err := store.OpenOrCreateSegmentFile(txFilePath, 10*1024*1024)
+	txStore, err := st.WithTransaction()
 	if err != nil {
-		return nil, errors.Wrapf(err, "while opening segment file %s", txFilePath)
+		return nil, errors.Wrap(err, "while opening tx file")
 	}
-
-	txStore := make(store.Store, len(st))
-	copy(txStore, st)
-	txStore[0] = l0
 
 	return &Transaction{
 		ReadTransaction: &ReadTransaction{
