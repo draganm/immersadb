@@ -92,6 +92,10 @@ func (t *Transaction) Commit() error {
 	return t.db.commit(t.st[0], t.root)
 }
 
+func (t *Transaction) Rollback() error {
+	return t.db.rollback(t.st[0])
+}
+
 func (t *Transaction) Put(path string, d []byte) error {
 	return t.modifyPath(path, func(ad store.Address, key string) (store.Address, error) {
 		da, err := data.StoreData(t.st, d, t.db.dataSegmentSize, t.db.dataFanout)

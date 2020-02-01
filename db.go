@@ -106,6 +106,22 @@ func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 
 }
 
+func (db *DB) rollback(l0 *store.SegmentFile) error {
+
+	defer l0.CloseAndDelete()
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if !db.txActive {
+		return errors.New("cannot rollback, no transaction was active")
+	}
+
+	db.txActive = false
+
+	return nil
+
+}
+
 func (db *DB) Close() error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
