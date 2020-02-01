@@ -9,11 +9,13 @@ import (
 )
 
 type DB struct {
-	root     store.Address
-	st       store.Store
-	txActive bool
-	dir      string
-	mu       sync.Mutex
+	dataSegmentSize int
+	dataFanout      int
+	root            store.Address
+	st              store.Store
+	txActive        bool
+	dir             string
+	mu              sync.Mutex
 }
 
 //  Database file layout:
@@ -39,9 +41,11 @@ func Open(path string) (*DB, error) {
 	root = st.Root()
 
 	return &DB{
-		root: root,
-		st:   st,
-		dir:  path,
+		root:            root,
+		st:              st,
+		dir:             path,
+		dataSegmentSize: 256 * 1024,
+		dataFanout:      16,
 	}, nil
 }
 

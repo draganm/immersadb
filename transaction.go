@@ -3,6 +3,7 @@ package immersadb
 import (
 	serrors "errors"
 
+	"github.com/draganm/immersadb/data"
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/store"
 	"github.com/draganm/immersadb/wbbtree"
@@ -89,4 +90,14 @@ func modifyPath(st store.Store, ad store.Address, path []string, f func(ad store
 
 func (t *Transaction) Commit() error {
 	return t.db.commit(t.st[0], t.root)
+}
+
+func (t *Transaction) Put(path string, d []byte) error {
+	return t.modifyPath(path, func(ad store.Address, key string) (store.Address, error) {
+		da, err := data.StoreData(t.st, d, t.db.dataSegmentSize, t.db.dataFanout)
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while storing data")
+		}
+		return wbbtree.Insert(t.st, ad, []byte(key), da)
+	})
 }

@@ -1,9 +1,12 @@
 package immersadb
 
 import (
+	"github.com/draganm/immersadb/data"
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/store"
 	"github.com/draganm/immersadb/wbbtree"
+	"github.com/pkg/errors"
+	"io/ioutil"
 )
 
 type ReadTransaction struct {
@@ -35,4 +38,18 @@ func (t *ReadTransaction) pathElementAddress(path string) (store.Address, error)
 	}
 
 	return ad, nil
+}
+
+func (t *ReadTransaction) Get(path string) ([]byte, error) {
+	pa, err := t.pathElementAddress(path)
+	if err != nil {
+		return nil, err
+	}
+	r, err := data.NewReader(pa, t.st)
+	if err != nil {
+		return nil, errors.Wrap(err, "while creating reader")
+	}
+
+	return ioutil.ReadAll(r)
+
 }

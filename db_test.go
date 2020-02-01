@@ -40,6 +40,16 @@ func TestDatabaseCreation(t *testing.T) {
 					require.NoError(t, err)
 					require.Equal(t, uint64(1), cnt)
 				})
+
+				t.Run("when I put data in the sub-map", func(t *testing.T) {
+					err = tx.Put("test/abc", []byte{1, 2, 3})
+					require.NoError(t, err)
+					t.Run("then I should be able to read the data", func(t *testing.T) {
+						d, err := tx.Get("test/abc")
+						require.NoError(t, err)
+						require.Equal(t, []byte{1, 2, 3}, d)
+					})
+				})
 			})
 
 			t.Run("when I commit the transaction", func(t *testing.T) {
