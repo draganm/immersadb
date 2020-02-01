@@ -49,7 +49,7 @@ func Open(path string) (*DB, error) {
 	}, nil
 }
 
-func (db *DB) ReadTransaction() *ReadTransaction {
+func (db *DB) NewReadTransaction() *ReadTransaction {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -59,7 +59,7 @@ func (db *DB) ReadTransaction() *ReadTransaction {
 	}
 }
 
-func (db *DB) Transaction() (*Transaction, error) {
+func (db *DB) NewTransaction() (*Transaction, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	if db.txActive {

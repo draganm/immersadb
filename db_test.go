@@ -28,7 +28,7 @@ func TestDatabaseCreation(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Run("when I start a new transaction", func(t *testing.T) {
-			tx, err := db.Transaction()
+			tx, err := db.NewTransaction()
 			require.NoError(t, err)
 
 			t.Run("when I create a map in root", func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestDatabaseCreation(t *testing.T) {
 				err = tx.Commit()
 				require.NoError(t, err)
 				t.Run("then the new map should be persisted", func(t *testing.T) {
-					cnt, err := db.ReadTransaction().Count("")
+					cnt, err := db.NewReadTransaction().Count("")
 					require.NoError(t, err)
 					require.Equal(t, uint64(1), cnt)
 				})
@@ -73,7 +73,7 @@ func TestDatabaseCreation(t *testing.T) {
 		require.NoError(t, err)
 
 		t.Run("then the new map should be persisted", func(t *testing.T) {
-			cnt, err := db.ReadTransaction().Count("")
+			cnt, err := db.NewReadTransaction().Count("")
 			require.NoError(t, err)
 			require.Equal(t, uint64(1), cnt)
 		})
