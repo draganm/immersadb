@@ -89,13 +89,14 @@ func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 	copy(txStore, db.st)
 	txStore[0] = l0
 
-	newDBRoot, _, err := txStore.Commit(newRoot)
+	newDBRoot, ns, err := txStore.Commit(newRoot)
 	if err != nil {
 		return errors.Wrap(err, "while commiting transaction")
 	}
-
+	// TODO close the old store diff
+	// fmt.Println("new root", newDBRoot)
 	db.root = newDBRoot
-	// TODO: write the root file!
+	db.st = ns
 
 	return nil
 

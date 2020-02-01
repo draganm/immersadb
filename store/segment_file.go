@@ -3,9 +3,12 @@ package store
 import (
 	"encoding/binary"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/edsrzf/mmap-go"
 	"github.com/pkg/errors"
+	"github.com/segmentio/ksuid"
 )
 
 const extendStep = 1 * 1024 * 1024
@@ -110,4 +113,24 @@ func (s *SegmentFile) CloseAndDelete() error {
 
 func (s *SegmentFile) IsEmpty() bool {
 	return s.nextFreeByte == 0
+}
+
+func (s *SegmentFile) CreateEmptySibling() (*SegmentFile, error) {
+	fullPath := s.f.Name()
+	dir := filepath.Dir(fullPath)
+	base := filepath.Base(fullPath)
+
+	parts := strings.SplitN(base, "-", 2)
+	if len(parts) != 2 {
+		return nil, errors.Errorf("could not determine prefix of %q", base)
+	}
+
+	prefix := parts[0]
+
+	id, err := ksuid.Parse(parts[1])
+	if err != nil {
+		return nil, errors.Wrapf(err, "while parsing ksuid %q", parts[1])
+	}
+
+	return ensureNextLayer(prefix, dir, s.maxSize, id)
 }

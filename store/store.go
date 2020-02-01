@@ -53,6 +53,18 @@ func filesWithPrefixSorted(prefix string, infos []os.FileInfo) []string {
 	return prefixed
 }
 
+func ensureNextLayer(prefix, dir string, maxSize uint64, old ksuid.KSUID) (*SegmentFile, error) {
+	newID := ksuid.New()
+	if newID.String() <= old.String() {
+		newID = old.Next()
+	}
+
+	fileName := fmt.Sprintf("%s-%s", prefix, newID.String())
+
+	return OpenOrCreateSegmentFile(filepath.Join(dir, fileName), maxSize)
+
+}
+
 func ensureLayer(prefix, dir string, infos []os.FileInfo, maxSize uint64) (*SegmentFile, error) {
 	files := filesWithPrefixSorted(prefix, infos)
 
@@ -158,4 +170,16 @@ func (s Store) Close() error {
 		}
 	}
 	return nil
+}
+
+func (s Store) String() string {
+	sb := &strings.Builder{}
+	for _, l := range s {
+		if l == nil {
+			sb.WriteString("NIL\n")
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("fn: %q maxSize %d nextFreeByte %d\n", filepath.Base(l.f.Name()), l.maxSize, l.nextFreeByte))
+	}
+	return sb.String()
 }
