@@ -80,3 +80,39 @@ func TestDatabaseCreation(t *testing.T) {
 
 	})
 }
+
+func TestMultipleTransactions(t *testing.T) {
+	td, cleanup := createTempDir(t)
+	defer cleanup()
+
+	db, err := immersadb.Open(td)
+	require.NoError(t, err)
+
+	t.Run("creating map in the first transaction should not fail", func(t *testing.T) {
+		err = db.Transaction(func(tx *immersadb.Transaction) error {
+			return tx.CreateMap("transactions")
+		})
+
+		require.NoError(t, err)
+	})
+
+	t.Run("creating data in the second transaction should not fail", func(t *testing.T) {
+		err = db.Transaction(func(tx *immersadb.Transaction) error {
+			return tx.Put("transactions/data", []byte{1, 2, 3})
+		})
+
+		require.NoError(t, err)
+	})
+
+	t.Run("reading data in the third transaction should not fail", func(t *testing.T) {
+		var cnt uint64
+		err = db.Transaction(func(tx *immersadb.Transaction) error {
+			cnt, err = tx.Count("transactions")
+			return nil
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), cnt)
+	})
+
+}

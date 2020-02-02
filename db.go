@@ -1,6 +1,7 @@
 package immersadb
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/draganm/immersadb/store"
@@ -89,6 +90,10 @@ func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 
 	db.txActive = false
 
+	if newRoot == db.root {
+		return nil
+	}
+
 	txStore := make(store.Store, len(db.st))
 	copy(txStore, db.st)
 	txStore[0] = l0
@@ -97,9 +102,17 @@ func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 	if err != nil {
 		return errors.Wrap(err, "while commiting transaction")
 	}
+
 	// TODO close the old store diff
 	// fmt.Println("new root", newDBRoot)
 	db.root = newDBRoot
+
+	for i := range ns {
+		if db.st[i] != ns[i] {
+			go db.st[i].CloseAndDelete()
+		}
+	}
+
 	db.st = ns
 
 	return nil
@@ -126,4 +139,41 @@ func (db *DB) Close() error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	return db.st.Close()
+}
+
+func (db *DB) Transaction(f func(tx *Transaction) error) error {
+	tx, err := db.NewTransaction()
+	if err != nil {
+		return errors.Wrap(err, "while creating transaction")
+	}
+
+	err = f(tx)
+	if err != nil {
+		rbErr := tx.Rollback()
+		if err != nil {
+			return errors.Wrap(rbErr, "while rolling back transaction")
+		}
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (db *DB) PrintStats() {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	rs := db.st.GetSegment(db.root)
+
+	fmt.Println("total data size", rs.GetTotalTreeSize(), "bytes")
+	for i := 1; i < 4; i++ {
+		ub := db.st[i].UsedBytes()
+		lts := rs.GetLayerTotalSize(i)
+		garbagePercent := 0.0
+		if ub > 0 {
+			garbagePercent = 100.0 * float64(ub-lts) / float64(ub)
+		}
+		fmt.Printf("Layer %d: size %d, used %d, garbage %d bytes (%0.2f%%)\n", i, ub, lts, ub-lts, garbagePercent)
+
+	}
 }

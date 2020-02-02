@@ -1,12 +1,13 @@
 package immersadb
 
 import (
+	"io/ioutil"
+
 	"github.com/draganm/immersadb/data"
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/store"
 	"github.com/draganm/immersadb/wbbtree"
 	"github.com/pkg/errors"
-	"io/ioutil"
 )
 
 type ReadTransaction struct {
@@ -52,4 +53,18 @@ func (t *ReadTransaction) Get(path string) ([]byte, error) {
 
 	return ioutil.ReadAll(r)
 
+}
+
+func (t *ReadTransaction) Exists(path string) (bool, error) {
+
+	_, err := t.pathElementAddress(path)
+	if errors.Cause(err) == wbbtree.ErrNotFound {
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

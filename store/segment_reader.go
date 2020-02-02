@@ -3,6 +3,7 @@ package store
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 )
 
 // layout
@@ -45,6 +46,10 @@ func (s SegmentReader) NumberOfChildren() int {
 	return int(s[4+1+4*8])
 }
 
+func (s SegmentReader) SegmentSize() uint64 {
+	return uint64(binary.BigEndian.Uint32(s))
+}
+
 func (s SegmentReader) GetChildAddress(i int) Address {
 	if i < 0 {
 		panic("negative child index")
@@ -83,4 +88,18 @@ func (s SegmentReader) GetTotalTreeSize() uint64 {
 
 func (s SegmentReader) Type() SegmentType {
 	return SegmentType(s[4])
+}
+
+func (s SegmentReader) String() string {
+	nc := s.NumberOfChildren()
+	children := make([]Address, nc)
+	for i := 0; i < nc; i++ {
+		children[i] = s.GetChildAddress(i)
+	}
+
+	layerSizes := make([]uint64, 4)
+	for i := 0; i < 4; i++ {
+		layerSizes[i] = s.GetLayerTotalSize(i)
+	}
+	return fmt.Sprintf("data: %x, children: %q, layerSizes: %#v ", s.GetData(), children, layerSizes)
 }

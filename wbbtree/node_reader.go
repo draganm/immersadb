@@ -11,7 +11,7 @@ type nodeReader store.SegmentReader
 func newNodeReader(st store.Store, a store.Address) (nodeReader, error) {
 	sr := st.GetSegment(a)
 	if sr.Type() != store.TypeWBBTreeNode {
-		return nodeReader{}, errors.New("Segment is not a WBBTreeNode")
+		return nodeReader{}, errors.Errorf("Segment %s is %s and not a WBBTreeNode", a, sr.Type())
 	}
 
 	if sr.NumberOfChildren() == 0 && len(sr.GetData()) == 0 {

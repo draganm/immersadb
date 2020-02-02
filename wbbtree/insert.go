@@ -2,11 +2,13 @@ package wbbtree
 
 import (
 	"bytes"
+
 	"github.com/draganm/immersadb/store"
 	"github.com/pkg/errors"
 )
 
 func Insert(s store.Store, root store.Address, key []byte, value store.Address) (store.Address, error) {
+
 	nr, err := insert(s, root, key, value)
 	if err != nil {
 		return store.NilAddress, err

@@ -102,6 +102,10 @@ func (t *Transaction) Put(path string, d []byte) error {
 		if err != nil {
 			return store.NilAddress, errors.Wrap(err, "while storing data")
 		}
-		return wbbtree.Insert(t.st, ad, []byte(key), da)
+		ra, err := wbbtree.Insert(t.st, ad, []byte(key), da)
+		if err != nil {
+			return store.NilAddress, errors.Wrapf(err, "while inserting %q into %s", key, ad)
+		}
+		return ra, nil
 	})
 }

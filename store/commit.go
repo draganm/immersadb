@@ -8,8 +8,8 @@ type LayerGCPlanStep int
 
 const (
 	UnknownGCPlan LayerGCPlanStep = iota
-	PushDown
 	Keep
+	PushDown
 	Compact
 )
 
@@ -50,13 +50,43 @@ func (s Store) Commit(root Address) (Address, Store, error) {
 
 	newBytes := sr.GetLayerTotalSize(0)
 
-	if int64(newBytes)+s[1].lastSegmentPosition > s[1].limit {
-		l1GarbageBytes := s[1].lastSegmentPosition - int64(sr.GetLayerTotalSize(1))
-		if l1GarbageBytes > int64(newBytes) {
+	if !s[1].CanAppend(newBytes) {
+		l1GarbageBytes := uint64(s[1].nextFreeByte) - sr.GetLayerTotalSize(1)
+		if l1GarbageBytes+s[1].RemainingCapacity() >= newBytes {
 			plan[1] = Compact
 		} else {
 			plan[1] = PushDown
 		}
+	}
+
+	if plan[1] == PushDown {
+
+		l1Bytes := sr.GetLayerTotalSize(1)
+		if !s[2].CanAppend(l1Bytes) {
+			l2GarbageBytes := uint64(s[2].nextFreeByte) - (sr.GetLayerTotalSize(2))
+			if l2GarbageBytes+s[2].RemainingCapacity() >= l1Bytes {
+				plan[2] = Compact
+			} else {
+				plan[2] = PushDown
+			}
+
+		}
+
+	}
+
+	if plan[2] == PushDown {
+
+		l2Bytes := sr.GetLayerTotalSize(2)
+		if !s[3].CanAppend(l2Bytes) {
+			l3GarbageBytes := uint64(s[3].nextFreeByte) - (sr.GetLayerTotalSize(3))
+			if l3GarbageBytes+s[3].RemainingCapacity() >= l2Bytes {
+				plan[2] = Compact
+			} else {
+				return NilAddress, nil, errors.New("database is full")
+			}
+
+		}
+
 	}
 
 	ns, err := s.newStoreFromPlan(plan)
@@ -68,10 +98,15 @@ func (s Store) Commit(root Address) (Address, Store, error) {
 	if err != nil {
 		return NilAddress, nil, errors.Wrap(err, "while executing plan")
 	}
+
 	return newRoot, ns, nil
 }
 
 func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, error) {
+
+	if a == NilAddress {
+		return NilAddress, nil
+	}
 
 	planStep := plan[a.Segment()]
 
@@ -79,7 +114,6 @@ func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, err
 	case Keep:
 		return a, nil
 	case PushDown:
-		// push down
 		sr := s.GetSegment(a)
 		nc := sr.NumberOfChildren()
 
@@ -87,13 +121,11 @@ func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, err
 
 		for i := 0; i < nc; i++ {
 			ca := sr.GetChildAddress(i)
-			if ca != NilAddress {
-				nca, err := executeGCPlan(s, ns, ca, plan)
-				if err != nil {
-					return NilAddress, err
-				}
-				children = append(children, nca)
+			nca, err := executeGCPlan(s, ns, ca, plan)
+			if err != nil {
+				return NilAddress, err
 			}
+			children = append(children, nca)
 		}
 
 		d := sr.GetData()
@@ -119,13 +151,11 @@ func executeGCPlan(s, ns Store, a Address, plan []LayerGCPlanStep) (Address, err
 
 		for i := 0; i < nc; i++ {
 			ca := sr.GetChildAddress(i)
-			if ca != NilAddress {
-				nca, err := executeGCPlan(s, ns, ca, plan)
-				if err != nil {
-					return NilAddress, err
-				}
-				children = append(children, nca)
+			nca, err := executeGCPlan(s, ns, ca, plan)
+			if err != nil {
+				return NilAddress, err
 			}
+			children = append(children, nca)
 		}
 
 		d := sr.GetData()

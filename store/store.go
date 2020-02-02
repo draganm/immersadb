@@ -87,7 +87,7 @@ type layer struct {
 var layers = []layer{
 	layer{
 		prefix:  "l1",
-		maxSize: 10 * 1024 * 1024,
+		maxSize: 100 * 1024 * 1024,
 	},
 	layer{
 		prefix:  "l2",
@@ -126,7 +126,7 @@ func (s Store) WithTransaction() (Store, error) {
 
 	dir := filepath.Dir(s[1].f.Name())
 
-	sf, err := ensureLayer("transaction", dir, nil, 10*1024*1024)
+	sf, err := ensureLayer("transaction", dir, nil, 100*1024*1024)
 	if err != nil {
 		return nil, errors.Wrap(err, "while creating transaction layer")
 	}
@@ -182,4 +182,16 @@ func (s Store) String() string {
 		sb.WriteString(fmt.Sprintf("fn: %q maxSize %d nextFreeByte %d\n", filepath.Base(l.f.Name()), l.maxSize, l.nextFreeByte))
 	}
 	return sb.String()
+}
+
+func (s Store) CalculateSegmentSizes(a Address, sizes []uint64) {
+	sr := s.GetSegment(a)
+	ss := sr.SegmentSize()
+	sizes[a.Segment()] += ss
+	for i := 0; i < sr.NumberOfChildren(); i++ {
+		ca := sr.GetChildAddress(i)
+		if ca != NilAddress {
+			s.CalculateSegmentSizes(ca, sizes)
+		}
+	}
 }

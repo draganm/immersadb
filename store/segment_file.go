@@ -92,6 +92,10 @@ func (s *SegmentFile) Flush() error {
 }
 
 func (s *SegmentFile) Allocate(size int) (uint64, []byte, error) {
+	if uint64(size)+uint64(s.nextFreeByte) > s.maxSize {
+		return 0, nil, errors.Errorf("Cant extend segment %p to %d bytes", s, uint64(size)+uint64(s.nextFreeByte))
+	}
+
 	err := s.ensureSize(int(s.nextFreeByte) + size)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "while ensuring size")
@@ -115,6 +119,10 @@ func (s *SegmentFile) IsEmpty() bool {
 	return s.nextFreeByte == 0
 }
 
+func (s *SegmentFile) UsedBytes() uint64 {
+	return uint64(s.nextFreeByte)
+}
+
 func (s *SegmentFile) CreateEmptySibling() (*SegmentFile, error) {
 	fullPath := s.f.Name()
 	dir := filepath.Dir(fullPath)
@@ -133,4 +141,12 @@ func (s *SegmentFile) CreateEmptySibling() (*SegmentFile, error) {
 	}
 
 	return ensureNextLayer(prefix, dir, s.maxSize, id)
+}
+
+func (s *SegmentFile) CanAppend(bytes uint64) bool {
+	return s.RemainingCapacity() >= bytes
+}
+
+func (s *SegmentFile) RemainingCapacity() uint64 {
+	return s.maxSize - uint64(s.nextFreeByte)
 }

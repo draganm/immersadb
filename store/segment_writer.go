@@ -1,8 +1,10 @@
 package store
 
-import "github.com/pkg/errors"
+import (
+	"encoding/binary"
 
-import "encoding/binary"
+	"github.com/pkg/errors"
+)
 
 type SegmentWriter struct {
 	st Store
@@ -20,7 +22,7 @@ func NewSegmentWriter(layer int, st Store, segmentType SegmentType, numberOfChil
 	binary.BigEndian.PutUint32(d, uint32(len(d)))
 	d[4] = byte(segmentType)
 
-	binary.BigEndian.PutUint64(d[4+1:], uint64(len(d)))
+	binary.BigEndian.PutUint64(d[4+1+layer*8:], uint64(len(d)))
 
 	d[4+1+4*8] = byte(numberOfChildren)
 
@@ -58,8 +60,8 @@ func (s SegmentWriter) SetChild(i int, addr Address) {
 
 	if oldChildAddress != NilAddress {
 		for i := 0; i < 4; i++ {
-			r := NewSegmentReader(s.st.GetSegment(oldChildAddress))
-			newSize := s.GetLayerTotalSize(i) - r.GetLayerTotalSize(i)
+			oldChildReader := s.st.GetSegment(oldChildAddress)
+			newSize := s.GetLayerTotalSize(i) - oldChildReader.GetLayerTotalSize(i)
 			s.SetLayerTotalSize(i, newSize)
 		}
 	}

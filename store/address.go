@@ -22,5 +22,8 @@ const NilAddress Address = (0xffffffffffffffff)
 const MaxLayers = 4
 
 func (a Address) String() string {
+	if a == NilAddress {
+		return "NILAddress"
+	}
 	return fmt.Sprintf("Segment %d Position %d", a.Segment(), a.Position())
 }
