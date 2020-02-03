@@ -54,6 +54,8 @@ func (db *DB) NewReadTransaction() *ReadTransaction {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	db.st.StartUse()
+
 	return &ReadTransaction{
 		db.st,
 		db.root,
@@ -80,7 +82,10 @@ func (db *DB) NewTransaction() (*Transaction, error) {
 
 func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 
-	defer l0.CloseAndDelete()
+	defer func() {
+		go l0.CloseAndDelete()
+	}()
+
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -112,6 +117,9 @@ func (db *DB) commit(l0 *store.SegmentFile, newRoot store.Address) error {
 			go db.st[i].CloseAndDelete()
 		}
 	}
+
+	txStore.FinishUse()
+	ns.FinishUse()
 
 	db.st = ns
 

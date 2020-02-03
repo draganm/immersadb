@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/edsrzf/mmap-go"
 	"github.com/pkg/errors"
@@ -20,6 +21,10 @@ type SegmentFile struct {
 	nextFreeByte        int64
 	lastSegmentPosition int64
 	limit               int64
+	useCount            int
+	mu                  *sync.Mutex
+	useCond             *sync.Cond
+	closed              bool
 }
 
 func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, error) {
@@ -55,6 +60,9 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 		offset += skip
 	}
 
+	mu := &sync.Mutex{}
+	useCond := sync.NewCond(mu)
+
 	return &SegmentFile{
 		f:                   f,
 		MMap:                mm,
@@ -62,10 +70,13 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 		nextFreeByte:        offset,
 		lastSegmentPosition: lastSegmentPosition,
 		limit:               limit,
+		mu:                  mu,
+		useCond:             useCond,
 	}, nil
 }
 
 func (s *SegmentFile) ensureSize(bytes int) error {
+
 	for int(s.limit-s.nextFreeByte) < bytes {
 		// TODO: figure out how to do only one truncate
 		err := s.f.Truncate(int64(s.nextFreeByte + extendStep))
@@ -78,20 +89,63 @@ func (s *SegmentFile) ensureSize(bytes int) error {
 	return nil
 }
 
+func (s *SegmentFile) ensureNotClosed() {
+	if s.closed {
+		panic("segment file is closed!")
+	}
+}
+
+func (s *SegmentFile) StartUse() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureNotClosed()
+	s.useCount++
+}
+
+func (s *SegmentFile) FinishUse() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureNotClosed()
+	if s.useCount <= 0 {
+		panic("finishUse called more often than StartUse")
+	}
+	s.useCount--
+	if s.useCount == 0 {
+		s.useCond.Broadcast()
+	}
+}
+
 func (s *SegmentFile) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.ensureNotClosed()
+
+	for s.useCount != 0 {
+		s.useCond.Wait()
+	}
+
 	err := s.MMap.Unmap()
 	if err != nil {
 		return errors.Wrapf(err, "while unmmaping %q", s.f.Name())
 	}
 
+	s.closed = true
+
 	return s.f.Close()
 }
 
 func (s *SegmentFile) Flush() error {
+	s.ensureNotClosed()
 	return s.MMap.Flush()
 }
 
 func (s *SegmentFile) Allocate(size int) (uint64, []byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.ensureNotClosed()
+
 	if uint64(size)+uint64(s.nextFreeByte) > s.maxSize {
 		return 0, nil, errors.Errorf("Cant extend segment %p to %d bytes", s, uint64(size)+uint64(s.nextFreeByte))
 	}
@@ -112,21 +166,39 @@ func (s *SegmentFile) CloseAndDelete() error {
 		return errors.Wrap(err, "while closing layer")
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return os.Remove(s.f.Name())
 }
 
 func (s *SegmentFile) IsEmpty() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureNotClosed()
+
 	return s.nextFreeByte == 0
 }
 
 func (s *SegmentFile) UsedBytes() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureNotClosed()
+
 	return uint64(s.nextFreeByte)
 }
 
 func (s *SegmentFile) CreateEmptySibling() (*SegmentFile, error) {
+	s.mu.Lock()
+
+	s.ensureNotClosed()
+
 	fullPath := s.f.Name()
 	dir := filepath.Dir(fullPath)
 	base := filepath.Base(fullPath)
+	maxSize := s.maxSize
+
+	s.mu.Unlock()
 
 	parts := strings.SplitN(base, "-", 2)
 	if len(parts) != 2 {
@@ -140,13 +212,23 @@ func (s *SegmentFile) CreateEmptySibling() (*SegmentFile, error) {
 		return nil, errors.Wrapf(err, "while parsing ksuid %q", parts[1])
 	}
 
-	return ensureNextLayer(prefix, dir, s.maxSize, id)
+	return ensureNextLayer(prefix, dir, maxSize, id)
 }
 
 func (s *SegmentFile) CanAppend(bytes uint64) bool {
-	return s.RemainingCapacity() >= bytes
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureNotClosed()
+	return s.remainingCapacity() >= bytes
 }
 
 func (s *SegmentFile) RemainingCapacity() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ensureNotClosed()
+	return s.remainingCapacity()
+}
+
+func (s *SegmentFile) remainingCapacity() uint64 {
 	return s.maxSize - uint64(s.nextFreeByte)
 }

@@ -195,3 +195,19 @@ func (s Store) CalculateSegmentSizes(a Address, sizes []uint64) {
 		}
 	}
 }
+
+func (s Store) StartUse() {
+	for _, sf := range s {
+		if sf != nil {
+			sf.StartUse()
+		}
+	}
+}
+
+func (s Store) FinishUse() {
+	for _, sf := range s {
+		if sf != nil {
+			sf.FinishUse()
+		}
+	}
+}

@@ -68,3 +68,7 @@ func (t *ReadTransaction) Exists(path string) (bool, error) {
 
 	return true, nil
 }
+
+func (t *ReadTransaction) Discard() {
+	t.st.FinishUse()
+}

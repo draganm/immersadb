@@ -94,6 +94,8 @@ func (s Store) Commit(root Address) (Address, Store, error) {
 		return NilAddress, nil, errors.Wrap(err, "while creating new store")
 	}
 
+	ns.StartUse()
+
 	newRoot, err := executeGCPlan(s, ns, root, plan)
 	if err != nil {
 		return NilAddress, nil, errors.Wrap(err, "while executing plan")

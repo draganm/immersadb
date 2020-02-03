@@ -22,6 +22,8 @@ func newTransaction(st store.Store, root store.Address, db *DB) (*Transaction, e
 		return nil, errors.Wrap(err, "while opening tx file")
 	}
 
+	txStore.StartUse()
+
 	return &Transaction{
 		ReadTransaction: &ReadTransaction{
 			st:   txStore,
