@@ -46,6 +46,8 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 		children[i] = store.NilAddress
 	}
 
+	loadedChildren := make([]*TrieNode, 256)
+
 	d := sr.GetData()
 
 	count := binary.BigEndian.Uint64(d[:8])
@@ -78,6 +80,7 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 	return &TrieNode{
 		persistedAddress: &ad,
 		children:         children,
+		loadedChildren:   loadedChildren,
 		count:            count,
 		prefix:           string(prefix),
 		store:            st,
