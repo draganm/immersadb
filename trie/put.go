@@ -37,10 +37,22 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 
 	if idx >= len(t.kv) {
 		t.count++
+		t.kv = append(t.kv, kvpair{k, value})
+		t.persistedAddress = nil
+		return
+	}
+
+	if bytes.Compare(k, t.kv[idx].key) == 0 {
+		if t.kv[idx].value == value {
+			return
+		}
+		t.kv[idx].value = value
+		return
 	}
 
 	t.kv = append(t.kv[:idx], append([]kvpair{kvpair{k, value}}, t.kv[idx:]...)...)
 
+	t.count++
 	t.persistedAddress = nil
 
 }
