@@ -56,6 +56,16 @@ func TestLoadingAndStoring(t *testing.T) {
 			require.NoError(t, err)
 			empty.Put([][]byte{[]byte{1, 2, 3}}, da)
 
+			t.Run("then I the cound should be 1", func(t *testing.T) {
+				require.Equal(t, uint64(1), empty.Count())
+			})
+
+			t.Run("then I should be able to get the stored value", func(t *testing.T) {
+				v, err := empty.Get([][]byte{[]byte{1, 2, 3}})
+				require.NoError(t, err)
+				require.Equal(t, da, v)
+			})
+
 			t.Run("and I persist the trie", func(t *testing.T) {
 				pa, err := empty.Persist()
 				require.NoError(t, err)
