@@ -81,6 +81,21 @@ func TestLoadingAndStoring(t *testing.T) {
 					t.Run("then I the cound should be 1", func(t *testing.T) {
 						require.Equal(t, uint64(1), leaf.Count())
 					})
+					t.Run("when I put four more values", func(t *testing.T) {
+						leaf.Put([][]byte{[]byte{2, 3, 4}}, da)
+						leaf.Put([][]byte{[]byte{4, 5, 6}}, da)
+						leaf.Put([][]byte{[]byte{5, 6, 7}}, da)
+						leaf.Put([][]byte{[]byte{6, 7, 8}}, da)
+						t.Run("then the tree should have count of 5", func(t *testing.T) {
+							require.Equal(t, uint64(5), leaf.Count())
+						})
+					})
+					t.Run("when I change one value", func(t *testing.T) {
+						leaf.Put([][]byte{[]byte{2, 3, 4}}, da)
+						t.Run("then the tree should still have count of 5", func(t *testing.T) {
+							require.Equal(t, uint64(5), leaf.Count())
+						})
+					})
 				})
 
 			})

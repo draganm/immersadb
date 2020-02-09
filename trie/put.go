@@ -1,6 +1,11 @@
 package trie
 
-import "github.com/draganm/immersadb/store"
+import (
+	"bytes"
+	"sort"
+
+	"github.com/draganm/immersadb/store"
+)
 
 func (t *TrieNode) isLeaf() bool {
 	for i, c := range t.children {
@@ -24,12 +29,17 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 		panic("putting in sub-tries is not supported yet")
 	}
 
-	t.kv = append(t.kv, kvpair{
-		key:   path[0],
-		value: value,
+	k := path[0]
+
+	idx := sort.Search(len(t.kv), func(i int) bool {
+		return bytes.Compare(t.kv[i].key, k) >= 0
 	})
 
-	t.count++
+	if idx >= len(t.kv) {
+		t.count++
+	}
+
+	t.kv = append(t.kv[:idx], append([]kvpair{kvpair{k, value}}, t.kv[idx:]...)...)
 
 	t.persistedAddress = nil
 
