@@ -20,6 +20,8 @@ func (t *TrieNode) isLeaf() bool {
 	return true
 }
 
+const maxLeafSize = 32
+
 func (t *TrieNode) Put(path [][]byte, value store.Address) {
 	if !t.isLeaf() {
 		panic("putting in non-leafs is not supported yet")
@@ -35,14 +37,7 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 		return bytes.Compare(t.kv[i].key, k) >= 0
 	})
 
-	if idx >= len(t.kv) {
-		t.count++
-		t.kv = append(t.kv, kvpair{k, value})
-		t.persistedAddress = nil
-		return
-	}
-
-	if bytes.Compare(k, t.kv[idx].key) == 0 {
+	if idx < len(t.kv) && bytes.Compare(k, t.kv[idx].key) == 0 {
 		if t.kv[idx].value == value {
 			return
 		}
@@ -51,6 +46,31 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 	}
 
 	t.kv = append(t.kv[:idx], append([]kvpair{kvpair{k, value}}, t.kv[idx:]...)...)
+
+	if len(t.kv) > maxLeafSize {
+		// find longest common prefix
+		cp := t.kv.longestCommonPrefix()
+		if bytes.Equal(cp, t.kv[0].key) {
+			// special case - first key is same as longest prefix
+			panic("not yet implemented")
+		}
+		// split to leaves - remove prefix
+		for _, kv := range t.kv {
+			splitByte := int(kv.key[len(cp)])
+			ch := t.loadedChildren[splitByte]
+			if ch == nil {
+				ch = NewEmpty(t.store)
+				t.loadedChildren[splitByte] = ch
+			}
+			ch.Put([][]byte{kv.key[len(cp)+1:]}, kv.value)
+		}
+
+		t.kv = nil
+		t.prefix = cp
+
+		// insert common node with the prefix
+		// common node count adds one
+	}
 
 	t.count++
 	t.persistedAddress = nil

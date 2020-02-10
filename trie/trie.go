@@ -12,6 +12,35 @@ type kvpair struct {
 	value store.Address
 }
 
+type kvpairSlice []kvpair
+
+func (s kvpairSlice) longestCommonPrefix() []byte {
+
+	if len(s) == 0 {
+		return nil
+	}
+	firstKey := s[0].key
+
+	for i := 0; true; i++ {
+
+		if len(firstKey) < i {
+			return firstKey
+		}
+
+		for _, kvp := range s[1:] {
+			k := kvp.key
+			if len(k) < i {
+				return firstKey[:i]
+			}
+			if k[i] != firstKey[i] {
+				return firstKey[:i]
+			}
+		}
+	}
+
+	return firstKey
+}
+
 type kTrieNode struct {
 	key      []byte
 	trieNode *TrieNode
@@ -19,11 +48,11 @@ type kTrieNode struct {
 
 type TrieNode struct {
 	persistedAddress *store.Address
-	kv               []kvpair
+	kv               kvpairSlice
 	children         []store.Address
 	loadedChildren   []*TrieNode
 	count            uint64
-	prefix           string
+	prefix           []byte
 	value            store.Address
 	store            store.Store
 	valueTrie        *TrieNode
@@ -58,8 +87,8 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 		children[chm] = sr.GetChildAddress(i)
 	}
 
-	prefixLength := int(binary.BigEndian.Uint16(d[1+nch : 1+nch+2]))
-	prefix := d[8+1+nch : 8+1+nch+prefixLength]
+	prefixLength := int(binary.BigEndian.Uint16(d[8+1+nch : 8+1+nch+2]))
+	prefix := d[8+1+nch+2 : 8+1+nch+2+prefixLength]
 
 	chindex := nch
 	kv := []kvpair{}
@@ -82,7 +111,7 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 		children:         children,
 		loadedChildren:   loadedChildren,
 		count:            count,
-		prefix:           string(prefix),
+		prefix:           prefix,
 		store:            st,
 		value:            value,
 		kv:               kv,
@@ -129,13 +158,11 @@ func (t *TrieNode) Persist() (store.Address, error) {
 	}
 
 	for i, lc := range t.loadedChildren {
-		if !lc.isPersisted() {
-			pa, err := lc.Persist()
-			if err != nil {
-				return store.NilAddress, errors.Wrap(err, "while getting child's persisted address")
-			}
-			t.children[i] = pa
+		pa, err := lc.Persist()
+		if err != nil {
+			return store.NilAddress, errors.Wrap(err, "while getting child's persisted address")
 		}
+		t.children[i] = pa
 	}
 
 	if t.valueTrie != nil {
@@ -189,9 +216,9 @@ func (t *TrieNode) Persist() (store.Address, error) {
 	d = d[1:]
 	chindex := 0
 	for i, ch := range t.children {
-		sw.SetChild(chindex, ch)
-		chindex++
 		if ch != store.NilAddress {
+			sw.SetChild(chindex, ch)
+			chindex++
 			d[0] = byte(i)
 			d = d[1:]
 		}
