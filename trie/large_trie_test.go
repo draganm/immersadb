@@ -51,6 +51,75 @@ func TestLargeTrie(t *testing.T) {
 						require.Equal(t, da, nda)
 					}
 				})
+
+				t.Run("when I put 34th element into the trie", func(t *testing.T) {
+					tr.Put([][]byte{intToKey(33)}, da)
+					t.Run("then the loaded trie should have 34 elements", func(t *testing.T) {
+						require.Equal(t, uint64(34), tr.Count())
+					})
+					t.Run("then the loaded trie should have all keys", func(t *testing.T) {
+						for i := 0; i < 34; i++ {
+							nda, err := tr.Get([][]byte{intToKey(i)})
+							require.NoError(t, err)
+							require.Equal(t, da, nda)
+						}
+					})
+					t.Run("when I store and load the trie", func(t *testing.T) {
+						ta, err := tr.Persist()
+						require.NoError(t, err)
+						tr = trie.Load(ts, ta)
+						t.Run("then the loaded trie should have 34 elements", func(t *testing.T) {
+							require.Equal(t, uint64(34), tr.Count())
+						})
+						t.Run("then the loaded trie should have all keys", func(t *testing.T) {
+							for i := 0; i < 34; i++ {
+								nda, err := tr.Get([][]byte{intToKey(i)})
+								require.NoError(t, err)
+								require.Equal(t, da, nda)
+							}
+						})
+
+					})
+
+				})
+
+				t.Run("when I put 7byte key element into the trie", func(t *testing.T) {
+					tr.Put([][]byte{intToKey(0)[:7]}, da)
+					t.Run("then the trie should have 36 elements", func(t *testing.T) {
+						require.Equal(t, uint64(35), tr.Count())
+					})
+					t.Run("then the trie should have all keys", func(t *testing.T) {
+						for i := 0; i < 34; i++ {
+							nda, err := tr.Get([][]byte{intToKey(i)})
+							require.NoError(t, err)
+							require.Equal(t, da, nda)
+						}
+						nda, err := tr.Get([][]byte{intToKey(0)[:7]})
+						require.NoError(t, err)
+						require.Equal(t, da, nda)
+					})
+					t.Run("when I store and load the trie", func(t *testing.T) {
+						ta, err := tr.Persist()
+						require.NoError(t, err)
+						tr = trie.Load(ts, ta)
+						t.Run("then the loaded trie should have 34 elements", func(t *testing.T) {
+							require.Equal(t, uint64(35), tr.Count())
+						})
+						t.Run("then the loaded trie should have all keys", func(t *testing.T) {
+							for i := 0; i < 34; i++ {
+								nda, err := tr.Get([][]byte{intToKey(i)})
+								require.NoError(t, err)
+								require.Equal(t, da, nda)
+							}
+							nda, err := tr.Get([][]byte{intToKey(0)[:7]})
+							require.NoError(t, err)
+							require.Equal(t, da, nda)
+						})
+
+					})
+
+				})
+
 			})
 		})
 

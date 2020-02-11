@@ -48,7 +48,6 @@ type kTrieNode struct {
 
 type TrieNode struct {
 	persistedAddress *store.Address
-	kv               kvpairSlice
 	children         []store.Address
 	loadedChildren   []*TrieNode
 	count            uint64
@@ -57,6 +56,37 @@ type TrieNode struct {
 	store            store.Store
 	valueTrie        *TrieNode
 	kvTries          []kTrieNode
+	kv               kvpairSlice
+}
+
+func (t *TrieNode) copy() *TrieNode {
+	cp := &TrieNode{
+		persistedAddress: t.persistedAddress,
+		count:            t.count,
+		value:            t.value,
+		store:            t.store,
+		valueTrie:        t.valueTrie,
+		prefix:           t.prefix,
+	}
+
+	for _, ch := range t.children {
+		cp.children = append(cp.children, ch)
+	}
+
+	for _, lc := range t.loadedChildren {
+		cp.loadedChildren = append(cp.loadedChildren, lc)
+	}
+
+	for _, kvt := range t.kvTries {
+		cp.kvTries = append(cp.kvTries, kvt)
+	}
+
+	for _, kv := range t.kv {
+		cp.kv = append(cp.kv, kv)
+	}
+
+	return cp
+
 }
 
 // Layout
@@ -251,6 +281,7 @@ func NewEmpty(st store.Store) *TrieNode {
 
 	return &TrieNode{
 		store: st,
+		value: store.NilAddress,
 	}
 
 }
