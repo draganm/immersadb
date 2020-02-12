@@ -30,31 +30,32 @@ func (t *TrieNode) Get(path [][]byte) (store.Address, error) {
 	k := path[0]
 
 	if !t.isLeaf() {
-		if len(k) < len(t.prefix) {
+
+		_, kp, pp := commonPrefix(k, t.prefix)
+
+		if len(pp) > 0 {
 			return store.NilAddress, ErrNotFound
 		}
 
-		kpref := k[:len(t.prefix)]
-
-		if bytes.Equal(kpref, t.prefix) {
-			if len(kpref) == len(k) {
-				if t.value != store.NilAddress {
-					return t.value, nil
-				}
-				return store.NilAddress, ErrNotFound
+		if len(kp) == 0 {
+			if t.value != store.NilAddress {
+				return t.value, nil
 			}
-
-			splitByte := k[len(kpref)]
-
-			lc := t.loadedChild(splitByte)
-
-			postf := k[len(kpref)+1:]
-			path[0] = postf
-
-			return lc.Get(path)
-
+			return store.NilAddress, ErrNotFound
 		}
-		return store.NilAddress, ErrNotFound
+
+		splitByte := kp[0]
+
+		lc := t.loadedChild(splitByte)
+
+		if lc == nil {
+			return store.NilAddress, ErrNotFound
+		}
+
+		path[0] = kp[1:]
+
+		return lc.Get(path)
+
 	}
 
 	idx := sort.Search(len(t.kv), func(i int) bool {

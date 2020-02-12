@@ -60,8 +60,6 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 		// case 3: common prefix != prefix - insert an intermediate node
 		ch := t.copy()
 
-		// TODO: this case is incomplete!
-
 		ch.persistedAddress = nil
 		ch.prefix = ps[1:]
 
@@ -78,6 +76,11 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 
 		splitByte := ps[0]
 		t.loadedChildren[splitByte] = ch
+
+		nch := NewEmpty(t.store)
+		path[0] = ks[1:]
+		nch.Put(path, value)
+		t.loadedChildren[ks[0]] = nch
 		t.count++
 		t.persistedAddress = nil
 		return
@@ -113,7 +116,8 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 				ch = NewEmpty(t.store)
 				t.loadedChildren[splitByte] = ch
 			}
-			ch.Put([][]byte{kv.key[len(cp)+1:]}, kv.value)
+			cpth := [][]byte{kv.key[len(cp)+1:]}
+			ch.Put(cpth, kv.value)
 		}
 
 		t.kv = nil
