@@ -6,24 +6,28 @@ import (
 	"sort"
 
 	"github.com/draganm/immersadb/store"
+	"github.com/pkg/errors"
 )
 
 var ErrNotFound = serrors.New("not found")
 
-func (t *TrieNode) loadedChild(idx byte) *TrieNode {
+func (t *TrieNode) loadedChild(idx byte) (*TrieNode, error) {
 	loaded := t.loadedChildren[idx]
 	if loaded != nil {
-		return loaded
+		return loaded, nil
 	}
 
 	if t.children[idx] == store.NilAddress {
-		return nil
+		return nil, nil
 	}
 
-	loaded = Load(t.store, t.children[idx])
+	loaded, err := Load(t.store, t.children[idx])
+	if err != nil {
+		return nil, errors.Wrapf(err, "while loading child %d", idx)
+	}
 	t.loadedChildren[idx] = loaded
 
-	return loaded
+	return loaded, nil
 }
 
 func (t *TrieNode) Get(path [][]byte) (store.Address, error) {
@@ -46,7 +50,10 @@ func (t *TrieNode) Get(path [][]byte) (store.Address, error) {
 
 		splitByte := kp[0]
 
-		lc := t.loadedChild(splitByte)
+		lc, err := t.loadedChild(splitByte)
+		if err != nil {
+			return store.NilAddress, err
+		}
 
 		if lc == nil {
 			return store.NilAddress, ErrNotFound

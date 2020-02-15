@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/draganm/immersadb/store"
+	"github.com/pkg/errors"
 )
 
 func (t *TrieNode) isLeaf() bool {
@@ -22,14 +23,24 @@ func (t *TrieNode) isLeaf() bool {
 
 const maxLeafSize = 32
 
-func (t *TrieNode) Put(path [][]byte, value store.Address) {
+func (t *TrieNode) Put(path [][]byte, value store.Address, valueTrie *TrieNode) error {
 
-	if value == store.NilAddress {
-		panic("trie can't set nil segment as value")
+	if len(path) == 0 {
+		return errors.New("empty path is not supported")
 	}
 
-	if len(path) != 1 {
-		panic("putting in sub-tries is not supported yet")
+	if value == store.NilAddress && valueTrie == nil {
+		return errors.New("trie can't set both nil segment address and nil valueTrie as value")
+	}
+
+	if value != store.NilAddress && valueTrie != nil {
+		return errors.New("trie can't set both non-nil segment address and non-nil valueTrie as value")
+	}
+
+	isLastPathElement := len(path) == 1
+
+	if !isLastPathElement {
+		return errors.New("putting in sub-tries is not supported yet")
 	}
 
 	k := path[0]
@@ -38,23 +49,41 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 		cp, ks, ps := commonPrefix(k, t.prefix)
 		// case 1: key == prefix - set the value
 		if len(ks) == 0 && len(ps) == 0 {
-			if t.value != value {
-				t.value = value
-				t.persistedAddress = nil
+			if t.value == store.NilAddress && t.valueTrie == nil {
 				t.count++
 			}
-			return
+			if t.value != value || t.valueTrie != valueTrie {
+				t.persistedAddress = nil
+			}
+			t.value = value
+			t.valueTrie = valueTrie
+			if t.value != store.NilAddress {
+				vt, err := Load(t.store, t.value)
+				if err != nil {
+					return err
+				}
+				t.valueTrie = vt
+			}
+			if t.valueTrie == nil {
+				return ErrNotFound
+			}
+
+			return t.valueTrie.Put(path[1:], value, valueTrie)
 		}
 
 		// case 2: common prefix == prefix - delegate to the child, create if necessary
 		if len(cp) == len(t.prefix) {
 			splitByte := ks[0]
-			ch := t.loadOrCreateEmptyChild(splitByte)
+			ch, err := t.loadOrCreateEmptyChild(splitByte)
+			if err != nil {
+				return err
+			}
+
 			path[0] = ks[1:]
-			ch.Put(path, value)
+			ch.Put(path, value, valueTrie)
 			t.persistedAddress = nil
 			t.count++
-			return
+			return nil
 		}
 
 		// case 3: common prefix != prefix - insert an intermediate node
@@ -69,7 +98,6 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 		}
 
 		t.kv = nil
-		t.kvTries = nil
 		t.valueTrie = nil
 		t.value = value
 		t.prefix = cp
@@ -79,11 +107,11 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 
 		nch := NewEmpty(t.store)
 		path[0] = ks[1:]
-		nch.Put(path, value)
+		nch.Put(path, value, valueTrie)
 		t.loadedChildren[ks[0]] = nch
 		t.count++
 		t.persistedAddress = nil
-		return
+		return nil
 
 	}
 
@@ -92,19 +120,23 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 	})
 
 	if idx < len(t.kv) && bytes.Compare(k, t.kv[idx].key) == 0 {
-		if t.kv[idx].value == value {
-			return
+		kv := t.kv[idx]
+		if kv.value == value && kv.valueTrie == valueTrie {
+			return nil
 		}
 		t.kv[idx].value = value
-		return
+		t.kv[idx].valueTrie = valueTrie
+		t.persistedAddress = nil
+		return nil
 	}
 
-	t.kv = append(t.kv[:idx], append([]kvpair{kvpair{k, value}}, t.kv[idx:]...)...)
+	t.kv = append(t.kv[:idx], append([]kvpair{kvpair{k, value, valueTrie}}, t.kv[idx:]...)...)
 
 	if len(t.kv) > maxLeafSize {
 		// find longest common prefix
 		cp := t.kv.longestCommonPrefix()
 		if bytes.Equal(cp, t.kv[0].key) {
+			// TODO implement this!
 			// special case - first key is same as longest prefix
 			panic("not yet implemented")
 		}
@@ -117,7 +149,7 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 				t.loadedChildren[splitByte] = ch
 			}
 			cpth := [][]byte{kv.key[len(cp)+1:]}
-			ch.Put(cpth, kv.value)
+			ch.Put(cpth, kv.value, kv.valueTrie)
 		}
 
 		t.kv = nil
@@ -129,6 +161,8 @@ func (t *TrieNode) Put(path [][]byte, value store.Address) {
 
 	t.count++
 	t.persistedAddress = nil
+
+	return nil
 
 }
 
@@ -148,20 +182,23 @@ func commonPrefix(p1, p2 []byte) ([]byte, []byte, []byte) {
 	return p1[:maxIndex], p1[maxIndex:], p2[maxIndex:]
 }
 
-func (t *TrieNode) loadOrCreateEmptyChild(idx byte) *TrieNode {
+func (t *TrieNode) loadOrCreateEmptyChild(idx byte) (*TrieNode, error) {
 	loaded := t.loadedChildren[idx]
 	if loaded != nil {
-		return loaded
+		return loaded, nil
 	}
 
 	if t.children[idx] == store.NilAddress {
 		loaded = NewEmpty(t.store)
 		t.loadedChildren[idx] = loaded
-		return loaded
+		return loaded, nil
 	}
 
-	loaded = Load(t.store, t.children[idx])
+	loaded, err := Load(t.store, t.children[idx])
+	if err != nil {
+		return nil, errors.Wrapf(err, "while loading child %d", idx)
+	}
 	t.loadedChildren[idx] = loaded
 
-	return loaded
+	return loaded, nil
 }

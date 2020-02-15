@@ -25,22 +25,26 @@ func TestLargeTrie(t *testing.T) {
 		require.NoError(t, err)
 
 		for i := 0; i < 32; i++ {
-			tr.Put([][]byte{intToKey(i)}, da)
+			tr.Put([][]byte{intToKey(i)}, da, nil)
 		}
 
 		ta, err := tr.Persist()
 		require.NoError(t, err)
-		tr = trie.Load(ts, ta)
+
+		tr, err = trie.Load(ts, ta)
+		require.NoError(t, err)
 
 		require.Equal(t, uint64(32), tr.Count())
 
 		t.Run("when I put another element into the trie", func(t *testing.T) {
-			tr.Put([][]byte{intToKey(32)}, da)
+			tr.Put([][]byte{intToKey(32)}, da, nil)
 
 			t.Run("and I store and load the trie", func(t *testing.T) {
 				ta, err := tr.Persist()
 				require.NoError(t, err)
-				tr = trie.Load(ts, ta)
+				tr, err = trie.Load(ts, ta)
+				require.NoError(t, err)
+
 				t.Run("then the loaded trie should have 33 elements", func(t *testing.T) {
 					require.Equal(t, uint64(33), tr.Count())
 				})
@@ -53,7 +57,7 @@ func TestLargeTrie(t *testing.T) {
 				})
 
 				t.Run("when I put 34th element into the trie", func(t *testing.T) {
-					tr.Put([][]byte{intToKey(33)}, da)
+					tr.Put([][]byte{intToKey(33)}, da, nil)
 					t.Run("then the loaded trie should have 34 elements", func(t *testing.T) {
 						require.Equal(t, uint64(34), tr.Count())
 					})
@@ -67,7 +71,8 @@ func TestLargeTrie(t *testing.T) {
 					t.Run("when I store and load the trie", func(t *testing.T) {
 						ta, err := tr.Persist()
 						require.NoError(t, err)
-						tr = trie.Load(ts, ta)
+						tr, err = trie.Load(ts, ta)
+						require.NoError(t, err)
 						t.Run("then the loaded trie should have 34 elements", func(t *testing.T) {
 							require.Equal(t, uint64(34), tr.Count())
 						})
@@ -84,7 +89,7 @@ func TestLargeTrie(t *testing.T) {
 				})
 
 				t.Run("when I put 7byte key element into the trie", func(t *testing.T) {
-					tr.Put([][]byte{intToKey(0)[:7]}, da)
+					tr.Put([][]byte{intToKey(0)[:7]}, da, nil)
 					t.Run("then the trie should have 35 elements", func(t *testing.T) {
 						require.Equal(t, uint64(35), tr.Count())
 					})
@@ -101,7 +106,9 @@ func TestLargeTrie(t *testing.T) {
 					t.Run("when I store and load the trie", func(t *testing.T) {
 						ta, err := tr.Persist()
 						require.NoError(t, err)
-						tr = trie.Load(ts, ta)
+						tr, err = trie.Load(ts, ta)
+						require.NoError(t, err)
+
 						t.Run("then the loaded trie should have 35 elements", func(t *testing.T) {
 							require.Equal(t, uint64(35), tr.Count())
 						})
@@ -121,7 +128,7 @@ func TestLargeTrie(t *testing.T) {
 				})
 
 				t.Run("when I put 8byte key element with shorter prefix into the trie", func(t *testing.T) {
-					tr.Put([][]byte{intToKey(256)}, da)
+					tr.Put([][]byte{intToKey(256)}, da, nil)
 					t.Run("then the trie should have 36 elements", func(t *testing.T) {
 						require.Equal(t, uint64(36), tr.Count())
 					})
@@ -138,7 +145,9 @@ func TestLargeTrie(t *testing.T) {
 					t.Run("when I store and load the trie", func(t *testing.T) {
 						ta, err := tr.Persist()
 						require.NoError(t, err)
-						tr = trie.Load(ts, ta)
+						tr, err = trie.Load(ts, ta)
+						require.NoError(t, err)
+
 						t.Run("then the loaded trie should have 36 elements", func(t *testing.T) {
 							require.Equal(t, uint64(36), tr.Count())
 						})

@@ -8,8 +8,9 @@ import (
 )
 
 type kvpair struct {
-	key   []byte
-	value store.Address
+	key       []byte
+	value     store.Address
+	valueTrie *TrieNode
 }
 
 type kvpairSlice []kvpair
@@ -41,11 +42,6 @@ func (s kvpairSlice) longestCommonPrefix() []byte {
 	return firstKey
 }
 
-type kTrieNode struct {
-	key      []byte
-	trieNode *TrieNode
-}
-
 type TrieNode struct {
 	persistedAddress *store.Address
 	children         []store.Address
@@ -55,7 +51,6 @@ type TrieNode struct {
 	value            store.Address
 	store            store.Store
 	valueTrie        *TrieNode
-	kvTries          []kTrieNode
 	kv               kvpairSlice
 }
 
@@ -77,10 +72,6 @@ func (t *TrieNode) copy() *TrieNode {
 		cp.loadedChildren = append(cp.loadedChildren, lc)
 	}
 
-	for _, kvt := range t.kvTries {
-		cp.kvTries = append(cp.kvTries, kvt)
-	}
-
 	for _, kv := range t.kv {
 		cp.kv = append(cp.kv, kv)
 	}
@@ -97,8 +88,12 @@ func (t *TrieNode) copy() *TrieNode {
 // prefix length bytes prefix
 // len/data key
 
-func Load(st store.Store, ad store.Address) *TrieNode {
+func Load(st store.Store, ad store.Address) (*TrieNode, error) {
 	sr := st.GetSegment(ad)
+
+	if sr.Type() != store.TypeTrieNode {
+		return nil, errors.Errorf("tried to load node with type %s as %s node", sr.Type(), store.TypeTrieNode)
+	}
 
 	children := make([]store.Address, 256)
 	for i := range children {
@@ -109,6 +104,10 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 
 	d := sr.GetData()
 
+	if len(d) < 9 {
+		return nil, errors.New("trie node segment data is less than 9 bytes")
+	}
+
 	count := binary.BigEndian.Uint64(d[:8])
 
 	nch := int(d[8])
@@ -116,6 +115,8 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 	for i, chm := range d[8+1 : 8+1+nch] {
 		children[chm] = sr.GetChildAddress(i)
 	}
+
+	// TODO check data size
 
 	prefixLength := int(binary.BigEndian.Uint16(d[8+1+nch : 8+1+nch+2]))
 	prefix := d[8+1+nch+2 : 8+1+nch+2+prefixLength]
@@ -125,13 +126,15 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 	value := sr.GetChildAddress(chindex)
 	chindex++
 
+	// TODO check data size
+
 	kvd := d[8+1+nch+2+prefixLength:]
 
 	for len(kvd) > 0 {
 		len := int(binary.BigEndian.Uint16(kvd[:2]))
 		k := kvd[2 : 2+len]
 		// kv[string(k)] = sr.GetChildAddress(chindex)
-		kv = append(kv, kvpair{k, sr.GetChildAddress(chindex)})
+		kv = append(kv, kvpair{k, sr.GetChildAddress(chindex), nil})
 		chindex++
 		kvd = kvd[2+len:]
 	}
@@ -145,7 +148,7 @@ func Load(st store.Store, ad store.Address) *TrieNode {
 		store:            st,
 		value:            value,
 		kv:               kv,
-	}
+	}, nil
 }
 
 func (t *TrieNode) isPersisted() bool {
@@ -169,8 +172,8 @@ func (t *TrieNode) isPersisted() bool {
 		}
 	}
 
-	for _, vt := range t.kvTries {
-		if !vt.trieNode.isPersisted() {
+	for _, vt := range t.kv {
+		if !vt.valueTrie.isPersisted() {
 			return false
 		}
 	}
@@ -205,9 +208,9 @@ func (t *TrieNode) Persist() (store.Address, error) {
 		}
 	}
 
-	for i, vt := range t.kvTries {
-		if vt.trieNode != nil && !vt.trieNode.isPersisted() {
-			vta, err := vt.trieNode.Persist()
+	for i, vt := range t.kv {
+		if vt.valueTrie != nil && !vt.valueTrie.isPersisted() {
+			vta, err := vt.valueTrie.Persist()
 			if err != nil {
 				return store.NilAddress, errors.Wrapf(err, "while persisting value trie for %q", string(vt.key))
 			}
