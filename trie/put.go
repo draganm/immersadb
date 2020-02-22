@@ -37,11 +37,11 @@ func (t *TrieNode) Put(path [][]byte, value store.Address, valueTrie *TrieNode) 
 		return errors.New("trie can't set both non-nil segment address and non-nil valueTrie as value")
 	}
 
-	isLastPathElement := len(path) == 1
+	// isLastPathElement := len(path) == 1
 
-	if !isLastPathElement {
-		return errors.New("putting in sub-tries is not supported yet")
-	}
+	// if !isLastPathElement {
+	// 	return errors.New("putting in sub-tries is not supported yet")
+	// }
 
 	k := path[0]
 

@@ -25,7 +25,14 @@ func TestNestedLargeTrie(t *testing.T) {
 
 		require.Equal(t, uint64(2), tr.Count())
 		t.Run("when I create another empty trie in the first sub-trie", func(t *testing.T) {
-			tr.Put([][]byte{[]byte("abc"), []byte("123")}, store.NilAddress, trie.NewEmpty(ts))
+			err = tr.Put([][]byte{[]byte("abc"), []byte("123")}, store.NilAddress, trie.NewEmpty(ts))
+			require.NoError(t, err)
+			t.Run("when I store and reload the trie", func(t *testing.T) {
+				addr, err := tr.Persist()
+				require.NoError(t, err)
+				tr, err = trie.Load(ts, addr)
+				require.NoError(t, err)
+			})
 		})
 
 	})

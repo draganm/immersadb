@@ -8,9 +8,8 @@ import (
 )
 
 type kvpair struct {
-	key       []byte
-	value     store.Address
-	valueTrie *TrieNode
+	key   []byte
+	value *TrieNode
 }
 
 type kvpairSlice []kvpair
@@ -43,15 +42,97 @@ func (s kvpairSlice) longestCommonPrefix() []byte {
 }
 
 type TrieNode struct {
-	persistedAddress *store.Address
-	children         []store.Address
-	loadedChildren   []*TrieNode
-	count            uint64
-	prefix           []byte
-	value            store.Address
-	store            store.Store
-	valueTrie        *TrieNode
-	kv               kvpairSlice
+	loaded           bool
+	modified         bool
+	persistedAddress store.Address
+	// children         []store.Address
+	children []*TrieNode
+	count    uint64
+	prefix   []byte
+	value    *TrieNode
+	store    store.Store
+	kv       kvpairSlice
+}
+
+func NewLazyTrieNode(store store.Store, address store.Address) *TrieNode {
+	return &TrieNode{
+		persistedAddress: address,
+		store:            store,
+	}
+}
+
+func (t *TrieNode) load() error {
+	if t.loaded {
+		return nil
+	}
+
+	sr := t.store.GetSegment(t.persistedAddress)
+
+	if sr.Type() != store.TypeTrieNode {
+		return errors.Errorf("tried to load node with type %s as %s node", sr.Type(), store.TypeTrieNode)
+	}
+
+	children := make([]store.Address, 256)
+	for i := range children {
+		children[i] = store.NilAddress
+	}
+
+	loadedChildren := make([]*TrieNode, 256)
+
+	d := sr.GetData()
+
+	if len(d) < 9 {
+		return errors.New("trie node segment data is less than 9 bytes")
+	}
+
+	count := binary.BigEndian.Uint64(d[:8])
+
+	nch := int(d[8])
+
+	for i, chm := range d[8+1 : 8+1+nch] {
+		children[chm] = sr.GetChildAddress(i)
+	}
+
+	// TODO check data size
+
+	prefixLength := int(binary.BigEndian.Uint16(d[8+1+nch : 8+1+nch+2]))
+	prefix := d[8+1+nch+2 : 8+1+nch+2+prefixLength]
+
+	chindex := nch
+	kv := []kvpair{}
+	value := sr.GetChildAddress(chindex)
+	chindex++
+
+	// TODO check data size
+
+	kvd := d[8+1+nch+2+prefixLength:]
+
+	for len(kvd) > 0 {
+		len := int(binary.BigEndian.Uint16(kvd[:2]))
+		k := kvd[2 : 2+len]
+		// kv[string(k)] = sr.GetChildAddress(chindex)
+		kv = append(kv, kvpair{k, NewLazyTrieNode(t.store, sr.GetChildAddress(chindex))})
+
+		chindex++
+		kvd = kvd[2+len:]
+	}
+
+	t.children = children
+
+	return nil
+
+	return &TrieNode{
+		persistedAddress: &ad,
+		children:         children,
+		loadedChildren:   loadedChildren,
+		count:            count,
+		prefix:           prefix,
+		store:            st,
+		value:            value,
+		kv:               kv,
+	}, nil
+
+	Load(t.store)
 }
 
 func (t *TrieNode) copy() *TrieNode {
@@ -289,6 +370,9 @@ func NewEmpty(st store.Store) *TrieNode {
 
 }
 
-func (t *TrieNode) Count() uint64 {
-	return t.count
+func (t *TrieNode) Count(path [][]byte) uint64 {
+	if len(path) == 0 {
+		return t.count
+	}
+
 }

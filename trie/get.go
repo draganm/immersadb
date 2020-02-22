@@ -30,7 +30,7 @@ func (t *TrieNode) loadedChild(idx byte) (*TrieNode, error) {
 	return loaded, nil
 }
 
-func (t *TrieNode) Get(path [][]byte) (store.Address, error) {
+func (t *TrieNode) Get(path [][]byte) (store.Address, *TrieNode, error) {
 	k := path[0]
 
 	if !t.isLeaf() {
@@ -38,25 +38,25 @@ func (t *TrieNode) Get(path [][]byte) (store.Address, error) {
 		_, kp, pp := commonPrefix(k, t.prefix)
 
 		if len(pp) > 0 {
-			return store.NilAddress, ErrNotFound
+			return store.NilAddress, nil, ErrNotFound
 		}
 
 		if len(kp) == 0 {
-			if t.value != store.NilAddress {
-				return t.value, nil
+			if t.value != store.NilAddress || t.valueTrie != nil {
+				return t.value, t.valueTrie, nil
 			}
-			return store.NilAddress, ErrNotFound
+			return store.NilAddress, nil, ErrNotFound
 		}
 
 		splitByte := kp[0]
 
 		lc, err := t.loadedChild(splitByte)
 		if err != nil {
-			return store.NilAddress, err
+			return store.NilAddress, nil, err
 		}
 
 		if lc == nil {
-			return store.NilAddress, ErrNotFound
+			return store.NilAddress, nil, ErrNotFound
 		}
 
 		path[0] = kp[1:]
