@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/draganm/immersadb/store"
@@ -49,7 +48,6 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 	}
 
 	cp, kp, pp := commonPrefix(key, t.prefix)
-	cp = cp
 
 	if len(kp) == 0 && len(pp) == 0 {
 		// key and prefix are the same
@@ -72,6 +70,26 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 			t.count++
 		}
 		return inserted
+	}
+
+	if len(kp) == 0 {
+		// key shares prefix with this node and is shorter
+		// insert a new parent with the value
+		// add current node as a child
+
+		nch := &trie{
+			count:    t.count,
+			children: t.children,
+			prefix:   pp[1:],
+			value:    t.value,
+		}
+
+		t.children = make([]*trie, 256)
+		t.count++
+		t.children[pp[0]] = nch
+		t.prefix = cp
+		t.value = value
+		return true
 	}
 
 	panic("not yet implemented")
@@ -102,15 +120,67 @@ func (t *trie) get(key []byte) (store.Address, error) {
 	return store.NilAddress, errors.New("not yet implemented")
 }
 
-func (t *trie) delete(key []byte) error {
-	if bytes.Compare(key, t.prefix) == 0 {
+func (t *trie) numberOfChildren() int {
+	cc := 0
+	for _, c := range t.children {
+		if c != nil {
+			cc++
+		}
+	}
 
+	return cc
+}
+
+func (t *trie) firstNonNilChild() (int, *trie) {
+	for i, c := range t.children {
+		if c != nil {
+			return i, c
+		}
+	}
+	return -1, nil
+}
+
+func (t *trie) delete(key []byte) error {
+
+	if t == nil {
+		return ErrNotFound
+	}
+
+	cp, kp, pp := commonPrefix(key, t.prefix)
+	cp = cp
+
+	if len(kp) == 0 && len(pp) == 0 {
 		if t.value != store.NilAddress {
 			t.count--
 			t.value = store.NilAddress
+
+			// if there is only one child, collapse it to the parent
+			if t.numberOfChildren() == 1 {
+				i, ch := t.firstNonNilChild()
+				t.prefix = append(append(t.prefix, byte(i)), ch.prefix...)
+				t.children = ch.children
+				t.value = ch.value
+			}
 			return nil
 		}
 		return ErrNotFound
+	}
+
+	if len(pp) == 0 {
+		// key is longer, use child for lookup
+		ch := t.children[kp[0]]
+		err := ch.delete(kp[1:])
+		if err != nil {
+			return err
+		}
+		t.count--
+
+		if ch.emtpy() {
+			t.children[kp[0]] = nil
+		}
+
+		return nil
+
 	}
 
 	return errors.New("not yet implemented")
