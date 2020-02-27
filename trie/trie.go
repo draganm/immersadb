@@ -92,6 +92,26 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 		return true
 	}
 
+	// branching off scenario - insert a new common parent
+
+	nvc := newEmptyTrie()
+	nvc.insert(kp[1:], value)
+
+	ntc := &trie{
+		count:    t.count,
+		children: t.children,
+		prefix:   pp[1:],
+		value:    t.value,
+	}
+
+	t.children = make([]*trie, 256)
+	t.count++
+	t.children[pp[0]] = ntc
+	t.children[kp[0]] = nvc
+	t.prefix = cp
+	t.value = store.NilAddress
+	return true
+
 	panic("not yet implemented")
 }
 

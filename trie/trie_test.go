@@ -165,3 +165,30 @@ func TestInsertShorterKey(t *testing.T) {
 	})
 
 }
+
+func TestBranchKey(t *testing.T) {
+	tr := newEmptyTrie()
+	tr.insert([]byte{1, 2, 3}, valueAddress)
+
+	t.Run("when I insert a value with a common prefix, branching off key", func(t *testing.T) {
+		inserted := tr.insert([]byte{1, 2, 4}, replacedValueAddress)
+		t.Run("then the value should be inserted", func(t *testing.T) {
+			require.True(t, inserted)
+		})
+		t.Run("then the trie should have count 2", func(t *testing.T) {
+			assert.Equal(t, uint64(2), tr.count)
+		})
+		t.Run("then the trie should contain the old value", func(t *testing.T) {
+			va, err := tr.get([]byte{1, 2, 3})
+			require.NoError(t, err)
+			require.Equal(t, valueAddress, va)
+		})
+		t.Run("then the trie should contain the new value", func(t *testing.T) {
+			va, err := tr.get([]byte{1, 2, 4})
+			require.NoError(t, err)
+			require.Equal(t, replacedValueAddress, va)
+		})
+
+	})
+
+}
