@@ -112,7 +112,6 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 	t.value = store.NilAddress
 	return true
 
-	panic("not yet implemented")
 }
 
 func (t *trie) get(key []byte) (store.Address, error) {
@@ -121,8 +120,7 @@ func (t *trie) get(key []byte) (store.Address, error) {
 		return store.NilAddress, ErrNotFound
 	}
 
-	cp, kp, pp := commonPrefix(key, t.prefix)
-	cp = cp
+	_, kp, pp := commonPrefix(key, t.prefix)
 
 	if len(kp) == 0 && len(pp) == 0 {
 		if t.value != store.NilAddress {
@@ -137,7 +135,7 @@ func (t *trie) get(key []byte) (store.Address, error) {
 		return ch.get(kp[1:])
 	}
 
-	return store.NilAddress, errors.New("not yet implemented")
+	return store.NilAddress, ErrNotFound
 }
 
 func (t *trie) numberOfChildren() int {
@@ -166,8 +164,7 @@ func (t *trie) delete(key []byte) error {
 		return ErrNotFound
 	}
 
-	cp, kp, pp := commonPrefix(key, t.prefix)
-	cp = cp
+	_, kp, pp := commonPrefix(key, t.prefix)
 
 	if len(kp) == 0 && len(pp) == 0 {
 		if t.value != store.NilAddress {
@@ -203,5 +200,5 @@ func (t *trie) delete(key []byte) error {
 
 	}
 
-	return errors.New("not yet implemented")
+	return ErrNotFound
 }

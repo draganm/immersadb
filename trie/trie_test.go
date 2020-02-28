@@ -1,6 +1,8 @@
 package trie
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/draganm/immersadb/store"
@@ -190,5 +192,65 @@ func TestBranchKey(t *testing.T) {
 		})
 
 	})
+
+}
+
+func TestRandomInsertDeleteGet(t *testing.T) {
+
+	tr := newEmptyTrie()
+
+	keys := [][]byte{}
+
+	for i := 0; i < 200; i++ {
+
+		key := []byte(nil)
+		for {
+			len := rand.Intn(50)
+			key = make([]byte, len)
+			_, err := rand.Read(key)
+			require.NoError(t, err)
+			_, err = tr.get(key)
+			if err == ErrNotFound {
+				break
+			}
+			require.NoError(t, err)
+		}
+
+		keys = append(keys, key)
+
+		t.Run(fmt.Sprintf("when I insert key nr %d into the trie", i), func(t *testing.T) {
+			inserted := tr.insert(key, valueAddress)
+			t.Run("then the key should be inserted", func(t *testing.T) {
+				require.True(t, inserted)
+			})
+
+			t.Run("then the trie could should be increased", func(t *testing.T) {
+				require.Equal(t, uint64(i+1), tr.count)
+			})
+
+			t.Run("then the trie should contain the key", func(t *testing.T) {
+				addr, err := tr.get(key)
+				require.NoError(t, err)
+				require.Equal(t, valueAddress, addr)
+			})
+
+		})
+
+	}
+
+	for i, key := range keys {
+		t.Run(fmt.Sprintf("when I delete key %d from the trie", i), func(t *testing.T) {
+			err := tr.delete(key)
+			require.NoError(t, err)
+			t.Run("then the count of elements in the trie should be reduced", func(t *testing.T) {
+				require.Equal(t, uint64(len(keys)-i-1), tr.count)
+			})
+
+			t.Run("then I should not be able to find the key in the trie", func(t *testing.T) {
+				_, err := tr.get(key)
+				require.Error(t, err, ErrNotFound)
+			})
+		})
+	}
 
 }
