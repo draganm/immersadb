@@ -10,6 +10,7 @@ const (
 	TypeDataLeaf
 	TypeDataNode
 	TypeWBBTreeNode
+	TypeTrieNode
 )
 
 var segmentTypeNameMap = map[SegmentType]string{
@@ -18,6 +19,7 @@ var segmentTypeNameMap = map[SegmentType]string{
 	TypeDataLeaf:    "DataLeaf",
 	TypeDataNode:    "DataNode",
 	TypeWBBTreeNode: "WBBTreeNode",
+	TypeTrieNode:    "TrieNode",
 }
 
 func (s SegmentType) String() string {

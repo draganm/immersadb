@@ -2,7 +2,10 @@ package trie
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/draganm/immersadb/store"
@@ -14,10 +17,16 @@ var valueAddress = store.NewAddress(0, 1)
 var replacedValueAddress = store.NewAddress(0, 2)
 
 func TestEmptyTrie(t *testing.T) {
-	tr := newEmptyTrie()
+
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
 
 	t.Run("when I insert a value into an empty trie", func(t *testing.T) {
-		inserted := tr.insert([]byte{1, 2, 3}, valueAddress)
+		inserted, err := tr.insert([]byte{1, 2, 3}, valueAddress)
+		require.NoError(t, err)
+
 		t.Run("then the value should be inserted", func(t *testing.T) {
 			require.True(t, inserted)
 		})
@@ -48,11 +57,17 @@ func TestEmptyTrie(t *testing.T) {
 }
 
 func TestInsertLongerKey(t *testing.T) {
-	tr := newEmptyTrie()
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
+
 	tr.insert([]byte{1, 2, 3}, valueAddress)
 
 	t.Run("when I replace the value with the same key", func(t *testing.T) {
-		inserted := tr.insert([]byte{1, 2, 3}, replacedValueAddress)
+		inserted, err := tr.insert([]byte{1, 2, 3}, replacedValueAddress)
+		require.NoError(t, err)
+
 		t.Run("then the value should be replaced", func(t *testing.T) {
 			require.False(t, inserted)
 		})
@@ -67,7 +82,9 @@ func TestInsertLongerKey(t *testing.T) {
 	})
 
 	t.Run("when I insert a with longer key and shared prefix", func(t *testing.T) {
-		inserted := tr.insert([]byte{1, 2, 3, 4}, valueAddress)
+		inserted, err := tr.insert([]byte{1, 2, 3, 4}, valueAddress)
+		require.NoError(t, err)
+
 		t.Run("then the value should be inserted", func(t *testing.T) {
 			require.True(t, inserted)
 		})
@@ -90,7 +107,11 @@ func TestInsertLongerKey(t *testing.T) {
 }
 
 func TestDeleteAndRemoveChild(t *testing.T) {
-	tr := newEmptyTrie()
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
+
 	tr.insert([]byte{1, 2, 3}, valueAddress)
 	tr.insert([]byte{1, 2, 3, 4}, replacedValueAddress)
 
@@ -116,7 +137,11 @@ func TestDeleteAndRemoveChild(t *testing.T) {
 }
 
 func TestDeleteAndCollapseParent(t *testing.T) {
-	tr := newEmptyTrie()
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
+
 	tr.insert([]byte{1, 2, 3}, valueAddress)
 	tr.insert([]byte{1, 2, 3, 4}, replacedValueAddress)
 
@@ -142,11 +167,17 @@ func TestDeleteAndCollapseParent(t *testing.T) {
 }
 
 func TestInsertShorterKey(t *testing.T) {
-	tr := newEmptyTrie()
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
+
 	tr.insert([]byte{1, 2, 3}, valueAddress)
 
 	t.Run("when I insert a value with a shorter key and shared prefix", func(t *testing.T) {
-		inserted := tr.insert([]byte{1, 2}, replacedValueAddress)
+		inserted, err := tr.insert([]byte{1, 2}, replacedValueAddress)
+		require.NoError(t, err)
+
 		t.Run("then the value should be inserted", func(t *testing.T) {
 			require.True(t, inserted)
 		})
@@ -169,11 +200,17 @@ func TestInsertShorterKey(t *testing.T) {
 }
 
 func TestBranchKey(t *testing.T) {
-	tr := newEmptyTrie()
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
+
 	tr.insert([]byte{1, 2, 3}, valueAddress)
 
 	t.Run("when I insert a value with a common prefix, branching off key", func(t *testing.T) {
-		inserted := tr.insert([]byte{1, 2, 4}, replacedValueAddress)
+		inserted, err := tr.insert([]byte{1, 2, 4}, replacedValueAddress)
+		require.NoError(t, err)
+
 		t.Run("then the value should be inserted", func(t *testing.T) {
 			require.True(t, inserted)
 		})
@@ -197,7 +234,10 @@ func TestBranchKey(t *testing.T) {
 
 func TestRandomInsertDeleteGet(t *testing.T) {
 
-	tr := newEmptyTrie()
+	ts, cleanup := newTestStore(t)
+	defer cleanup()
+
+	tr := newEmptyTrie(ts)
 
 	keys := [][]byte{}
 
@@ -219,7 +259,9 @@ func TestRandomInsertDeleteGet(t *testing.T) {
 		keys = append(keys, key)
 
 		t.Run(fmt.Sprintf("when I insert key nr %d into the trie", i), func(t *testing.T) {
-			inserted := tr.insert(key, valueAddress)
+			inserted, err := tr.insert(key, valueAddress)
+			require.NoError(t, err)
+
 			t.Run("then the key should be inserted", func(t *testing.T) {
 				require.True(t, inserted)
 			})
@@ -253,4 +295,29 @@ func TestRandomInsertDeleteGet(t *testing.T) {
 		})
 	}
 
+}
+
+func createTempDir(t *testing.T) (string, func() error) {
+	td, err := ioutil.TempDir("", "")
+	require.NoError(t, err)
+	return td, func() error {
+		return os.RemoveAll(td)
+	}
+}
+
+func newTestStore(t *testing.T) (store.Store, func() error) {
+	td, cleanup := createTempDir(t)
+
+	l0, err := store.OpenOrCreateSegmentFile(filepath.Join(td, "l0"), 10*1024*1024)
+	require.NoError(t, err)
+
+	st := store.Store{l0}
+
+	return st, func() error {
+		err = l0.Close()
+		if err != nil {
+			return err
+		}
+		return cleanup()
+	}
 }

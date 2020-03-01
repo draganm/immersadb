@@ -1,23 +1,30 @@
 package trie
 
 import (
-	"errors"
+	serrors "errors"
 
 	"github.com/draganm/immersadb/store"
+	"github.com/pkg/errors"
 )
 
-var ErrNotFound = errors.New("not found")
+var ErrNotFound = serrors.New("not found")
 
 type trie struct {
 	count    uint64
 	prefix   []byte
 	value    store.Address
 	children []*trie
+
+	store   store.Store
+	address store.Address
 }
 
-func newEmptyTrie() *trie {
+func newEmptyTrie(s store.Store) *trie {
 	return &trie{
+		value:    store.NilAddress,
 		children: make([]*trie, 256),
+		address:  store.NilAddress,
+		store:    s,
 	}
 }
 
@@ -33,18 +40,24 @@ func (t *trie) emtpy() bool {
 func (t *trie) getOrCreateNewChild(k byte) *trie {
 	ch := t.children[k]
 	if ch == nil {
-		ch = newEmptyTrie()
+		ch = newEmptyTrie(t.store)
 		t.children[k] = ch
 	}
 	return ch
 }
 
-func (t *trie) insert(key []byte, value store.Address) bool {
+func (t *trie) insert(key []byte, value store.Address) (bool, error) {
+
+	err := t.load()
+	if err != nil {
+		return false, err
+	}
+
 	if t.emtpy() {
 		t.prefix = key
 		t.count = 1
 		t.value = value
-		return true
+		return true, nil
 	}
 
 	cp, kp, pp := commonPrefix(key, t.prefix)
@@ -54,10 +67,11 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 		if t.value == store.NilAddress {
 			t.count++
 			t.value = value
-			return true
+			t.address = store.NilAddress
+			return true, nil
 		}
 		t.value = value
-		return false
+		return false, nil
 	}
 
 	if len(pp) == 0 {
@@ -65,11 +79,15 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 		// find or create a child
 		// insert into the child the rest of the postfix (kp)
 		ch := t.getOrCreateNewChild(kp[0])
-		inserted := ch.insert(kp[1:], value)
+		inserted, err := ch.insert(kp[1:], value)
+		if err != nil {
+			return false, nil
+		}
+
 		if inserted {
 			t.count++
 		}
-		return inserted
+		return inserted, nil
 	}
 
 	if len(kp) == 0 {
@@ -82,6 +100,8 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 			children: t.children,
 			prefix:   pp[1:],
 			value:    t.value,
+			address:  store.NilAddress,
+			store:    t.store,
 		}
 
 		t.children = make([]*trie, 256)
@@ -89,19 +109,26 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 		t.children[pp[0]] = nch
 		t.prefix = cp
 		t.value = value
-		return true
+		t.address = store.NilAddress
+		return true, nil
 	}
 
 	// branching off scenario - insert a new common parent
 
-	nvc := newEmptyTrie()
-	nvc.insert(kp[1:], value)
+	nvc := newEmptyTrie(t.store)
+	_, err = nvc.insert(kp[1:], value)
+	if err != nil {
+		return false, errors.Wrap(err, "while inserting into child")
+	}
 
 	ntc := &trie{
 		count:    t.count,
 		children: t.children,
 		prefix:   pp[1:],
 		value:    t.value,
+
+		address: store.NilAddress,
+		store:   t.store,
 	}
 
 	t.children = make([]*trie, 256)
@@ -110,11 +137,16 @@ func (t *trie) insert(key []byte, value store.Address) bool {
 	t.children[kp[0]] = nvc
 	t.prefix = cp
 	t.value = store.NilAddress
-	return true
+	return true, nil
 
 }
 
 func (t *trie) get(key []byte) (store.Address, error) {
+
+	err := t.load()
+	if err != nil {
+		return store.NilAddress, err
+	}
 
 	if t == nil {
 		return store.NilAddress, ErrNotFound
