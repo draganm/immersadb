@@ -9,6 +9,7 @@ import (
 )
 
 func TestInsertIntoEmptyNode(t *testing.T) {
+
 	n := &node{m: 3}
 
 	t.Run("when I insert a key/value into an empty node", func(t *testing.T) {
@@ -18,7 +19,7 @@ func TestInsertIntoEmptyNode(t *testing.T) {
 			Value: store.NewAddress(0, 333),
 		})
 
-		require.True(t, r.didInsert)
+		require.True(t, r.DidInsert)
 
 		t.Run("then the node should have the inserted keyValue", func(t *testing.T) {
 			require.Len(t, n.KVS, 1)
@@ -42,7 +43,7 @@ func TestInsertLowerKeyIntoNodeWithOneKey(t *testing.T) {
 		Key:   []byte{1, 2, 3},
 		Value: store.NewAddress(0, 333),
 	})
-	require.True(t, r.didInsert)
+	require.True(t, r.DidInsert)
 
 	t.Run("when I insert lower key/value", func(t *testing.T) {
 
@@ -50,7 +51,7 @@ func TestInsertLowerKeyIntoNodeWithOneKey(t *testing.T) {
 			Key:   []byte{1, 0, 0},
 			Value: store.NewAddress(0, 334),
 		})
-		require.True(t, r.didInsert)
+		require.True(t, r.DidInsert)
 
 		t.Run("then the keyValue should be inserted before the old key/valye", func(t *testing.T) {
 			require.Equal(t, []keyValue{
@@ -79,7 +80,7 @@ func TestInsertHigherKeyIntoNodeWithOneKey(t *testing.T) {
 		Key:   []byte{1, 2, 3},
 		Value: store.NewAddress(0, 333),
 	})
-	require.True(t, r.didInsert)
+	require.True(t, r.DidInsert)
 
 	t.Run("when I insert higher key/value", func(t *testing.T) {
 
@@ -87,7 +88,7 @@ func TestInsertHigherKeyIntoNodeWithOneKey(t *testing.T) {
 			Key:   []byte{1, 2, 4},
 			Value: store.NewAddress(0, 334),
 		})
-		require.True(t, r.didInsert)
+		require.True(t, r.DidInsert)
 
 		t.Run("then the keyValue should be inserted after the old key/valye", func(t *testing.T) {
 			require.Equal(t, []keyValue{
@@ -116,7 +117,7 @@ func TestReplaceValueWithOneKey(t *testing.T) {
 		Key:   []byte{1, 2, 3},
 		Value: store.NewAddress(0, 333),
 	})
-	require.True(t, r.didInsert)
+	require.True(t, r.DidInsert)
 
 	t.Run("when I insert higher key/value", func(t *testing.T) {
 
@@ -124,7 +125,7 @@ func TestReplaceValueWithOneKey(t *testing.T) {
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 334),
 		})
-		require.False(t, r.didInsert)
+		require.False(t, r.DidInsert)
 
 		t.Run("then the keyValue should be inserted after the old key/valye", func(t *testing.T) {
 			require.Equal(t, []keyValue{
@@ -150,18 +151,18 @@ func TestSplittingTheChild(t *testing.T) {
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
-		require.True(t, r.didInsert)
+		require.True(t, r.DidInsert)
 		r = n.insert(keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
-		require.True(t, r.didInsert)
+		require.True(t, r.DidInsert)
 
 		r = n.insert(keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
-		require.True(t, r.didInsert)
+		require.True(t, r.DidInsert)
 
 		t.Run("when I insert a new key/value", func(t *testing.T) {
 
@@ -169,43 +170,33 @@ func TestSplittingTheChild(t *testing.T) {
 				Key:   []byte{1, 2, 3},
 				Value: store.NewAddress(0, 333),
 			})
-			require.True(t, r.didInsert)
+			require.True(t, r.DidInsert)
 
 			t.Run("then the result should be a split node", func(t *testing.T) {
-				require.True(t, r.didSplit)
-				expected := insertResult{
-					didInsert: true,
-					didSplit:  true,
-					left: &node{
-						m:     1,
-						Count: 1,
-						KVS: []keyValue{
-							keyValue{
-								Key:   []byte{1, 2, 0},
-								Value: store.NewAddress(0, 330),
-							},
-						},
+				require.True(t, r.DidSplit)
+				requireJSONEqual(t, `
+				  {
+					"DidInsert": true,
+					"DidSplit": true,
+					"Middle": {
+					  "Key": "AQIB",
+					  "Value": 331
 					},
-					middle: keyValue{
-						Key:   []byte{1, 2, 1},
-						Value: store.NewAddress(0, 331),
+					"Left": {
+					  "Count": 1,
+					  "KVS": [
+						"[1 2 0]: Segment 0 Position 330"
+					  ]
 					},
-					right: &node{
-						m:     1,
-						Count: 2,
-						KVS: []keyValue{
-							keyValue{
-								Key:   []byte{1, 2, 2},
-								Value: store.NewAddress(0, 332),
-							},
-							keyValue{
-								Key:   []byte{1, 2, 3},
-								Value: store.NewAddress(0, 333),
-							},
-						},
-					},
-				}
-				require.Equal(t, expected, r)
+					"Right": {
+					  "Count": 2,
+					  "KVS": [
+						"[1 2 2]: Segment 0 Position 332",
+						"[1 2 3]: Segment 0 Position 333"
+					  ]
+					}
+				  }
+				`, r.toJSON())
 			})
 
 		})
@@ -247,8 +238,8 @@ func TestInsertingIntoNode(t *testing.T) {
 				Value: store.NewAddress(0, 334),
 			})
 
-			require.True(t, ir.didInsert)
-			require.False(t, ir.didSplit)
+			require.True(t, ir.DidInsert)
+			require.False(t, ir.DidSplit)
 
 			requireJSONEqual(t, `
 			  {
@@ -315,8 +306,8 @@ func TestChangingValueInNode(t *testing.T) {
 				Value: store.NewAddress(0, 666),
 			})
 
-			require.False(t, ir.didInsert)
-			require.False(t, ir.didSplit)
+			require.False(t, ir.DidInsert)
+			require.False(t, ir.DidSplit)
 
 			requireJSONEqual(t, `
 			  {
@@ -385,8 +376,8 @@ func TestInsertingIntoNodeWithRightLeafSplitting(t *testing.T) {
 				Value: store.NewAddress(0, 335),
 			})
 
-			require.True(t, ir.didInsert)
-			require.False(t, ir.didSplit)
+			require.True(t, ir.DidInsert)
+			require.False(t, ir.DidSplit)
 
 			requireJSONEqual(
 				t,
@@ -472,8 +463,8 @@ func TestInsertingIntoNodeWithLeftLeafSplitting(t *testing.T) {
 				Value: store.NewAddress(0, 320),
 			})
 
-			require.True(t, ir.didInsert)
-			require.False(t, ir.didSplit)
+			require.True(t, ir.DidInsert)
+			require.False(t, ir.DidSplit)
 
 			requireJSONEqual(t, `
 			{
