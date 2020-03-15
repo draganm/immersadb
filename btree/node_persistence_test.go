@@ -20,7 +20,7 @@ func createTempDir(t *testing.T) (string, func() error) {
 	}
 }
 
-func newTestStore(t *testing.T) (store.Store, func() error) {
+func NewTestStore(t *testing.T) (store.Store, func() error) {
 	td, cleanup := createTempDir(t)
 
 	l0, err := store.OpenOrCreateSegmentFile(filepath.Join(td, "l0"), 10*1024*1024)
@@ -38,7 +38,7 @@ func newTestStore(t *testing.T) (store.Store, func() error) {
 }
 
 func TestPersistingAndLoadingLeaf(t *testing.T) {
-	ts, cleanup := newTestStore(t)
+	ts, cleanup := NewTestStore(t)
 	defer cleanup()
 
 	v1, err := data.StoreData(ts, []byte{3, 3, 3}, 256, 4)
@@ -87,7 +87,7 @@ func TestPersistingAndLoadingLeaf(t *testing.T) {
 }
 
 func TestPersistingAndLoadingNode(t *testing.T) {
-	ts, cleanup := newTestStore(t)
+	ts, cleanup := NewTestStore(t)
 	defer cleanup()
 
 	v1, err := data.StoreData(ts, []byte{3, 3, 3}, 256, 4)
