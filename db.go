@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/draganm/immersadb/btree"
 	"github.com/draganm/immersadb/store"
-	"github.com/draganm/immersadb/wbbtree"
 	"github.com/pkg/errors"
 )
 
@@ -33,7 +33,7 @@ func Open(path string) (*DB, error) {
 
 	var root store.Address
 	if st.IsEmpty() {
-		_, err = wbbtree.CreateEmpty(st[1:])
+		_, err = btree.CreateEmpty(st[1:])
 		if err != nil {
 			return nil, errors.Wrap(err, "while creating empty root")
 		}

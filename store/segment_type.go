@@ -9,19 +9,19 @@ const (
 	TypeCommit
 	TypeDataLeaf
 	TypeDataNode
-	TypeWBBTreeNode
+	TypebtreeNode
 	TypeTrieNode
 	TypeBTreeNode
 )
 
 var segmentTypeNameMap = map[SegmentType]string{
-	TypeUndefined:   "Undefined",
-	TypeCommit:      "Commit",
-	TypeDataLeaf:    "DataLeaf",
-	TypeDataNode:    "DataNode",
-	TypeWBBTreeNode: "WBBTreeNode",
-	TypeTrieNode:    "TrieNode",
-	TypeBTreeNode:   "BTreeNode",
+	TypeUndefined: "Undefined",
+	TypeCommit:    "Commit",
+	TypeDataLeaf:  "DataLeaf",
+	TypeDataNode:  "DataNode",
+	TypebtreeNode: "btreeNode",
+	TypeTrieNode:  "TrieNode",
+	TypeBTreeNode: "BTreeNode",
 }
 
 func (s SegmentType) String() string {

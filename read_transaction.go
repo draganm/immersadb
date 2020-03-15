@@ -3,10 +3,10 @@ package immersadb
 import (
 	"io/ioutil"
 
+	"github.com/draganm/immersadb/btree"
 	"github.com/draganm/immersadb/data"
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/store"
-	"github.com/draganm/immersadb/wbbtree"
 	"github.com/pkg/errors"
 )
 
@@ -20,7 +20,7 @@ func (t *ReadTransaction) Count(path string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return wbbtree.Count(t.st, pa)
+	return btree.Count(t.st, pa)
 }
 
 func (t *ReadTransaction) pathElementAddress(path string) (store.Address, error) {
@@ -32,7 +32,7 @@ func (t *ReadTransaction) pathElementAddress(path string) (store.Address, error)
 	ad := t.root
 
 	for _, p := range parts[:len(parts)] {
-		ad, err = wbbtree.Search(t.st, ad, []byte(p))
+		ad, err = btree.Get(t.st, ad, []byte(p))
 		if err != nil {
 			return store.NilAddress, err
 		}
@@ -58,7 +58,7 @@ func (t *ReadTransaction) Get(path string) ([]byte, error) {
 func (t *ReadTransaction) Exists(path string) (bool, error) {
 
 	_, err := t.pathElementAddress(path)
-	if errors.Cause(err) == wbbtree.ErrNotFound {
+	if errors.Cause(err) == btree.ErrNotFound {
 		return false, nil
 	}
 

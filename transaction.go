@@ -3,10 +3,10 @@ package immersadb
 import (
 	serrors "errors"
 
+	"github.com/draganm/immersadb/btree"
 	"github.com/draganm/immersadb/data"
 	"github.com/draganm/immersadb/dbpath"
 	"github.com/draganm/immersadb/store"
-	"github.com/draganm/immersadb/wbbtree"
 	"github.com/pkg/errors"
 )
 
@@ -38,20 +38,20 @@ var ErrAlreadyExists = serrors.New("Already exists")
 
 func (t *Transaction) CreateMap(path string) error {
 	return t.modifyPath(path, func(ad store.Address, key string) (store.Address, error) {
-		_, err := wbbtree.Search(t.st, ad, []byte(key))
+		_, err := btree.Get(t.st, ad, []byte(key))
 		if err == nil {
 			return store.NilAddress, ErrAlreadyExists
 		}
-		if errors.Cause(err) != wbbtree.ErrNotFound {
+		if errors.Cause(err) != btree.ErrNotFound {
 			return store.NilAddress, err
 		}
 
-		ea, err := wbbtree.CreateEmpty(t.st)
+		ea, err := btree.CreateEmpty(t.st)
 		if err != nil {
 			return store.NilAddress, errors.Wrap(err, "while creating empty map")
 		}
 
-		return wbbtree.Insert(t.st, ad, []byte(key), ea)
+		return btree.Put(t.st, ad, []byte(key), ea)
 	})
 }
 
@@ -75,7 +75,7 @@ func modifyPath(st store.Store, ad store.Address, path []string, f func(ad store
 	}
 
 	if len(path) > 1 {
-		ca, err := wbbtree.Search(st, ad, []byte(path[0]))
+		ca, err := btree.Get(st, ad, []byte(path[0]))
 		if err != nil {
 			return store.NilAddress, err
 		}
@@ -83,7 +83,7 @@ func modifyPath(st store.Store, ad store.Address, path []string, f func(ad store
 		if err != nil {
 			return store.NilAddress, err
 		}
-		return wbbtree.Insert(st, ad, []byte(path[0]), nca)
+		return btree.Put(st, ad, []byte(path[0]), nca)
 	}
 
 	return f(ad, path[0])
@@ -104,7 +104,7 @@ func (t *Transaction) Put(path string, d []byte) error {
 		if err != nil {
 			return store.NilAddress, errors.Wrap(err, "while storing data")
 		}
-		ra, err := wbbtree.Insert(t.st, ad, []byte(key), da)
+		ra, err := btree.Put(t.st, ad, []byte(key), da)
 		if err != nil {
 			return store.NilAddress, errors.Wrapf(err, "while inserting %q into %s", key, ad)
 		}
