@@ -36,6 +36,12 @@ func TestPut(t *testing.T) {
 				require.Equal(t, uint64(1), cnt)
 			})
 
+			t.Run("then I should be able to find the key", func(t *testing.T) {
+				va, err := btree.Get(ts, a, []byte{1, 2, 3})
+				require.NoError(t, err)
+				require.Equal(t, v1, va)
+			})
+
 		})
 	})
 

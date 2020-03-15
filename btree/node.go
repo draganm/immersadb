@@ -7,9 +7,13 @@ import (
 	"fmt"
 	"sort"
 
+	serrors "errors"
+
 	"github.com/draganm/immersadb/store"
 	"github.com/pkg/errors"
 )
+
+var ErrNotFound = serrors.New("Not Found")
 
 type keyValue struct {
 	Key   []byte
@@ -325,4 +329,29 @@ func (n *node) toJSON() string {
 	}
 
 	return string(y)
+}
+
+func (n *node) get(key []byte) (store.Address, error) {
+
+	err := n.load()
+	if err != nil {
+		return store.NilAddress, err
+	}
+
+	idx := sort.Search(len(n.KVS), func(i int) bool {
+		return bytes.Compare(n.KVS[i].Key, key) >= 0
+	})
+
+	if idx < len(n.KVS) {
+		if bytes.Compare(n.KVS[idx].Key, key) == 0 {
+			return n.KVS[idx].Value, nil
+		}
+	}
+
+	if n.isLeaf() {
+		return store.NilAddress, ErrNotFound
+	}
+
+	return n.Children[idx].get(key)
+
 }
