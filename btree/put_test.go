@@ -1,6 +1,8 @@
 package btree_test
 
 import (
+	"bytes"
+	"math/rand"
 	"testing"
 
 	"github.com/draganm/immersadb/btree"
@@ -45,4 +47,64 @@ func TestPut(t *testing.T) {
 		})
 	})
 
+}
+
+func hasKey(keys [][]byte, key []byte) bool {
+	for _, k := range keys {
+		if bytes.Compare(k, key) == 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func TestRandomInserts(t *testing.T) {
+
+	ts, cleanup := btree.NewTestStore(t)
+	defer cleanup()
+
+	numberOfKeys := 2048
+
+	keys := make([][]byte, numberOfKeys)
+	values := make([]store.Address, numberOfKeys)
+
+	for i := range keys {
+		kl := 2 + rand.Intn(20)
+		key := make([]byte, kl)
+
+		n, err := rand.Read(key)
+		require.NoError(t, err)
+		require.Equal(t, n, kl)
+
+		for hasKey(keys[:i], key) {
+			n, err := rand.Read(key)
+			require.NoError(t, err)
+			require.Equal(t, n, kl)
+		}
+
+		keys[i] = key
+
+		v, err := data.StoreData(ts, key, 256, 4)
+		require.NoError(t, err)
+		values[i] = v
+	}
+
+	a, err := btree.CreateEmpty(ts)
+	require.NoError(t, err)
+
+	for i, k := range keys {
+		a, err = btree.Put(ts, a, k, values[i])
+		require.NoError(t, err)
+	}
+
+	cnt, err := btree.Count(ts, a)
+	require.NoError(t, err)
+	require.Equal(t, uint64(numberOfKeys), cnt)
+
+	for i, k := range keys {
+		v, err := btree.Get(ts, a, k)
+		require.NoError(t, err)
+		require.Equal(t, values[i], v)
+	}
 }
