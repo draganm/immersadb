@@ -11,7 +11,10 @@ func Put(s store.Store, root store.Address, key []byte, value store.Address) (st
 		store:   s,
 	}
 
-	rn := insertIntoBtree(n, keyValue{key, value})
+	rn, err := insertIntoBtree(n, keyValue{key, value})
+	if err != nil {
+		return store.NilAddress, err
+	}
 
 	return rn.persist()
 

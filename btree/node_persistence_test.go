@@ -1,7 +1,6 @@
 package btree
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -145,7 +144,6 @@ func TestPersistingAndLoadingNode(t *testing.T) {
 			}
 
 			t.Run("then the node should be the same", func(t *testing.T) {
-				fmt.Println(n.toJSON())
 				requireJSONEqual(
 					t,
 					`

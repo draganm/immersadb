@@ -10,14 +10,18 @@ import (
 
 func TestInsertIntoEmptyNode(t *testing.T) {
 
-	n := &node{m: 3}
+	n := &node{
+		m:       3,
+		address: store.NilAddress,
+	}
 
 	t.Run("when I insert a key/value into an empty node", func(t *testing.T) {
 
-		r := n.insert(keyValue{
+		r, err := n.insert(keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 333),
 		})
+		require.NoError(t, err)
 
 		require.True(t, r.DidInsert)
 
@@ -38,19 +42,25 @@ func TestInsertIntoEmptyNode(t *testing.T) {
 }
 
 func TestInsertLowerKeyIntoNodeWithOneKey(t *testing.T) {
-	n := &node{m: 3}
-	r := n.insert(keyValue{
+	n := &node{
+		m:       3,
+		address: store.NilAddress,
+	}
+
+	r, err := n.insert(keyValue{
 		Key:   []byte{1, 2, 3},
 		Value: store.NewAddress(0, 333),
 	})
+	require.NoError(t, err)
 	require.True(t, r.DidInsert)
 
 	t.Run("when I insert lower key/value", func(t *testing.T) {
 
-		r := n.insert(keyValue{
+		r, err := n.insert(keyValue{
 			Key:   []byte{1, 0, 0},
 			Value: store.NewAddress(0, 334),
 		})
+		require.NoError(t, err)
 		require.True(t, r.DidInsert)
 
 		t.Run("then the keyValue should be inserted before the old key/valye", func(t *testing.T) {
@@ -75,19 +85,25 @@ func TestInsertLowerKeyIntoNodeWithOneKey(t *testing.T) {
 }
 
 func TestInsertHigherKeyIntoNodeWithOneKey(t *testing.T) {
-	n := &node{m: 3}
-	r := n.insert(keyValue{
+	n := &node{
+		m:       3,
+		address: store.NilAddress,
+	}
+
+	r, err := n.insert(keyValue{
 		Key:   []byte{1, 2, 3},
 		Value: store.NewAddress(0, 333),
 	})
+	require.NoError(t, err)
 	require.True(t, r.DidInsert)
 
 	t.Run("when I insert higher key/value", func(t *testing.T) {
 
-		r := n.insert(keyValue{
+		r, err := n.insert(keyValue{
 			Key:   []byte{1, 2, 4},
 			Value: store.NewAddress(0, 334),
 		})
+		require.NoError(t, err)
 		require.True(t, r.DidInsert)
 
 		t.Run("then the keyValue should be inserted after the old key/valye", func(t *testing.T) {
@@ -112,19 +128,24 @@ func TestInsertHigherKeyIntoNodeWithOneKey(t *testing.T) {
 }
 
 func TestReplaceValueWithOneKey(t *testing.T) {
-	n := &node{m: 3}
-	r := n.insert(keyValue{
+	n := &node{
+		m:       3,
+		address: store.NilAddress,
+	}
+	r, err := n.insert(keyValue{
 		Key:   []byte{1, 2, 3},
 		Value: store.NewAddress(0, 333),
 	})
+	require.NoError(t, err)
 	require.True(t, r.DidInsert)
 
 	t.Run("when I insert higher key/value", func(t *testing.T) {
 
-		r := n.insert(keyValue{
+		r, err := n.insert(keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 334),
 		})
+		require.NoError(t, err)
 		require.False(t, r.DidInsert)
 
 		t.Run("then the keyValue should be inserted after the old key/valye", func(t *testing.T) {
@@ -145,31 +166,38 @@ func TestReplaceValueWithOneKey(t *testing.T) {
 }
 
 func TestSplittingTheChild(t *testing.T) {
-	n := &node{m: 1}
+	n := &node{
+		m:       1,
+		address: store.NilAddress,
+	}
 	t.Run("when the child node is full", func(t *testing.T) {
-		r := n.insert(keyValue{
+		r, err := n.insert(keyValue{
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
+		require.NoError(t, err)
 		require.True(t, r.DidInsert)
-		r = n.insert(keyValue{
+		r, err = n.insert(keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
+		require.NoError(t, err)
 		require.True(t, r.DidInsert)
 
-		r = n.insert(keyValue{
+		r, err = n.insert(keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
+		require.NoError(t, err)
 		require.True(t, r.DidInsert)
 
 		t.Run("when I insert a new key/value", func(t *testing.T) {
 
-			r = n.insert(keyValue{
+			r, err = n.insert(keyValue{
 				Key:   []byte{1, 2, 3},
 				Value: store.NewAddress(0, 333),
 			})
+			require.NoError(t, err)
 			require.True(t, r.DidInsert)
 
 			t.Run("then the result should be a split node", func(t *testing.T) {
@@ -206,37 +234,46 @@ func TestSplittingTheChild(t *testing.T) {
 }
 
 func TestInsertingIntoNode(t *testing.T) {
-	n := &node{m: 1}
+	n := &node{
+		m:       1,
+		address: store.NilAddress,
+	}
 
 	t.Run("when the root node is not a child", func(t *testing.T) {
 
-		n = insertIntoBtree(n, keyValue{
+		n, err := insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
+		require.NoError(t, err)
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 333),
 		})
+		require.NoError(t, err)
 
 		require.False(t, n.isLeaf())
 
 		t.Run("when I insert another key/value", func(t *testing.T) {
-			ir := n.insert(keyValue{
+			ir, err := n.insert(keyValue{
 				Key:   []byte{1, 2, 4},
 				Value: store.NewAddress(0, 334),
 			})
+			require.NoError(t, err)
 
 			require.True(t, ir.DidInsert)
 			require.False(t, ir.DidSplit)
@@ -274,37 +311,46 @@ func TestInsertingIntoNode(t *testing.T) {
 }
 
 func TestChangingValueInNode(t *testing.T) {
-	n := &node{m: 1}
+	n := &node{
+		m:       1,
+		address: store.NilAddress,
+	}
 
 	t.Run("when the root node is not a child", func(t *testing.T) {
+		var err error
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 333),
 		})
+		require.NoError(t, err)
 
 		require.False(t, n.isLeaf())
 
 		t.Run("when I insert another key/value", func(t *testing.T) {
-			ir := n.insert(keyValue{
+			ir, err := n.insert(keyValue{
 				Key:   []byte{1, 2, 1},
 				Value: store.NewAddress(0, 666),
 			})
+			require.NoError(t, err)
 
 			require.False(t, ir.DidInsert)
 			require.False(t, ir.DidSplit)
@@ -341,40 +387,51 @@ func TestChangingValueInNode(t *testing.T) {
 }
 
 func TestInsertingIntoNodeWithRightLeafSplitting(t *testing.T) {
-	n := &node{m: 1}
+	n := &node{
+		m:       1,
+		address: store.NilAddress,
+	}
 
 	t.Run("when the root node is not a child and the leaf is full", func(t *testing.T) {
 
-		n = insertIntoBtree(n, keyValue{
+		var err error
+
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 333),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 4},
 			Value: store.NewAddress(0, 334),
 		})
+		require.NoError(t, err)
 
 		t.Run("when I insert another key/value", func(t *testing.T) {
-			ir := n.insert(keyValue{
+			ir, err := n.insert(keyValue{
 				Key:   []byte{1, 2, 5},
 				Value: store.NewAddress(0, 335),
 			})
+			require.NoError(t, err)
 
 			require.True(t, ir.DidInsert)
 			require.False(t, ir.DidSplit)
@@ -418,50 +475,63 @@ func TestInsertingIntoNodeWithRightLeafSplitting(t *testing.T) {
 }
 
 func TestInsertingIntoNodeWithLeftLeafSplitting(t *testing.T) {
-	n := &node{m: 1}
+	n := &node{
+		m:       1,
+		address: store.NilAddress,
+	}
 
 	t.Run("when the root node is not a child and the leaf is full", func(t *testing.T) {
 
-		n = insertIntoBtree(n, keyValue{
+		var err error
+
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 333),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 4},
 			Value: store.NewAddress(0, 334),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 1, 2},
 			Value: store.NewAddress(0, 322),
 		})
+		require.NoError(t, err)
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 1, 1},
 			Value: store.NewAddress(0, 321),
 		})
+		require.NoError(t, err)
 
 		t.Run("when I insert another key/value", func(t *testing.T) {
-			ir := n.insert(keyValue{
+			ir, err := n.insert(keyValue{
 				Key:   []byte{1, 1, 0},
 				Value: store.NewAddress(0, 320),
 			})
+			require.NoError(t, err)
 
 			require.True(t, ir.DidInsert)
 			require.False(t, ir.DidSplit)
@@ -507,61 +577,67 @@ func TestInsertingIntoNodeWithLeftLeafSplitting(t *testing.T) {
 }
 
 func TestInsertingIntoNodeWithNodeSplitting(t *testing.T) {
-	n := &node{m: 1}
+	n := &node{
+		m:       1,
+		address: store.NilAddress,
+	}
 
 	t.Run("when the root node is full and the leaf is full", func(t *testing.T) {
 
-		n = insertIntoBtree(n, keyValue{
+		var err error
+
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 0},
 			Value: store.NewAddress(0, 330),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 1},
 			Value: store.NewAddress(0, 331),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 2},
 			Value: store.NewAddress(0, 332),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 3},
 			Value: store.NewAddress(0, 333),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 4},
 			Value: store.NewAddress(0, 334),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 1, 2},
 			Value: store.NewAddress(0, 322),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 1, 1},
 			Value: store.NewAddress(0, 321),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 1, 0},
 			Value: store.NewAddress(0, 320),
 		})
 
-		n = insertIntoBtree(n, keyValue{
+		n, err = insertIntoBtree(n, keyValue{
 			Key:   []byte{1, 2, 5},
 			Value: store.NewAddress(0, 335),
 		})
 
 		t.Run("when I insert another key/value", func(t *testing.T) {
 
-			n = insertIntoBtree(n, keyValue{
+			n, err = insertIntoBtree(n, keyValue{
 				Key:   []byte{1, 2, 6},
 				Value: store.NewAddress(0, 336),
 			})
+			require.NoError(t, err)
 
 			requireJSONEqual(t, `
 			  {

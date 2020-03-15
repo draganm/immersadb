@@ -178,15 +178,25 @@ func (n *node) persist() (store.Address, error) {
 	return n.address, nil
 }
 
-func (n *node) insert(kv keyValue) insertResult {
+func (n *node) insert(kv keyValue) (ir insertResult, err error) {
+
+	err = n.load()
+	if err != nil {
+		return insertResult{}, err
+	}
 
 	if n.isFull() {
 		middleValue, left, right := n.split()
-		var ir insertResult
 		if bytes.Compare(kv.Key, middleValue.Key) < 0 {
-			ir = left.insert(kv)
+			ir, err = left.insert(kv)
+			if err != nil {
+				return insertResult{}, err
+			}
 		} else {
-			ir = right.insert(kv)
+			ir, err = right.insert(kv)
+			if err != nil {
+				return insertResult{}, err
+			}
 		}
 
 		return insertResult{
@@ -195,7 +205,7 @@ func (n *node) insert(kv keyValue) insertResult {
 			Left:      left,
 			Middle:    middleValue,
 			Right:     right,
-		}
+		}, nil
 
 	}
 
@@ -205,11 +215,15 @@ func (n *node) insert(kv keyValue) insertResult {
 		})
 		if idx < len(n.KVS) && bytes.Compare(n.KVS[idx].Key, kv.Key) == 0 {
 			n.KVS[idx] = kv
-			return insertResult{}
+			return insertResult{}, nil
 		}
 
 		ch := n.Children[idx]
-		ir := ch.insert(kv)
+		ir, err := ch.insert(kv)
+		if err != nil {
+			return insertResult{}, err
+		}
+
 		if ir.DidInsert {
 			n.Count++
 		}
@@ -218,9 +232,9 @@ func (n *node) insert(kv keyValue) insertResult {
 			n.KVS = append(n.KVS[:idx], append([]keyValue{ir.Middle}, n.KVS[idx:]...)...)
 			return insertResult{
 				DidInsert: ir.DidInsert,
-			}
+			}, nil
 		}
-		return ir
+		return ir, nil
 
 	}
 
@@ -232,7 +246,7 @@ func (n *node) insert(kv keyValue) insertResult {
 		n.KVS[idx] = kv
 		return insertResult{
 			DidInsert: false,
-		}
+		}, nil
 	}
 
 	n.KVS = append(n.KVS[:idx], append([]keyValue{kv}, n.KVS[idx:]...)...)
@@ -240,7 +254,7 @@ func (n *node) insert(kv keyValue) insertResult {
 
 	return insertResult{
 		DidInsert: true,
-	}
+	}, nil
 }
 
 func (n *node) split() (keyValue, *node, *node) {
@@ -276,10 +290,13 @@ func (n *node) split() (keyValue, *node, *node) {
 
 }
 
-func insertIntoBtree(root *node, kv keyValue) *node {
-	insertResult := root.insert(kv)
+func insertIntoBtree(root *node, kv keyValue) (*node, error) {
+	insertResult, err := root.insert(kv)
+	if err != nil {
+		return nil, err
+	}
 	if !insertResult.DidSplit {
-		return root
+		return root, nil
 	}
 
 	cnt := root.Count
@@ -297,7 +314,7 @@ func insertIntoBtree(root *node, kv keyValue) *node {
 		},
 		store:   root.store,
 		address: store.NilAddress,
-	}
+	}, nil
 
 }
 
