@@ -87,11 +87,11 @@ type layer struct {
 var layers = []layer{
 	layer{
 		prefix:  "l1",
-		maxSize: 100 * 1024 * 1024,
+		maxSize: 10 * 1024 * 1024 * 1024,
 	},
 	layer{
 		prefix:  "l2",
-		maxSize: 1024 * 1024 * 1024,
+		maxSize: 256 * 1024 * 1024 * 1024,
 	},
 	layer{
 		prefix:  "l3",
@@ -126,7 +126,7 @@ func (s Store) WithTransaction() (Store, error) {
 
 	dir := filepath.Dir(s[1].f.Name())
 
-	sf, err := ensureLayer("transaction", dir, nil, 100*1024*1024)
+	sf, err := ensureLayer("transaction", dir, nil, 1024*1024*1024)
 	if err != nil {
 		return nil, errors.Wrap(err, "while creating transaction layer")
 	}

@@ -10,9 +10,10 @@ import (
 	"github.com/edsrzf/mmap-go"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
+	"golang.org/x/sys/unix"
 )
 
-const extendStep = 1 * 1024 * 1024
+const extendStep = 64 * 1024 * 1024
 
 type SegmentFile struct {
 	f                   *os.File
@@ -43,6 +44,11 @@ func OpenOrCreateSegmentFile(fileName string, maxSize uint64) (*SegmentFile, err
 	if err != nil {
 		f.Close()
 		return nil, errors.Wrapf(err, "while mmaping file %q", fileName)
+	}
+
+	err = unix.Madvise(mm, unix.MADV_RANDOM)
+	if err != nil {
+		return nil, errors.Wrapf(err, "while setting madvise to random for segment file %q", fileName)
 	}
 
 	offset := int64(0)

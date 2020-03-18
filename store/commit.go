@@ -52,7 +52,7 @@ func (s Store) Commit(root Address) (Address, Store, error) {
 
 	if !s[1].CanAppend(newBytes) {
 		l1GarbageBytes := uint64(s[1].nextFreeByte) - sr.GetLayerTotalSize(1)
-		if l1GarbageBytes+s[1].RemainingCapacity() >= newBytes {
+		if l1GarbageBytes+s[1].RemainingCapacity() >= newBytes && (float64(l1GarbageBytes)/float64(s[1].maxSize) >= 0.1) {
 			plan[1] = Compact
 		} else {
 			plan[1] = PushDown
@@ -64,7 +64,7 @@ func (s Store) Commit(root Address) (Address, Store, error) {
 		l1Bytes := sr.GetLayerTotalSize(1)
 		if !s[2].CanAppend(l1Bytes) {
 			l2GarbageBytes := uint64(s[2].nextFreeByte) - (sr.GetLayerTotalSize(2))
-			if l2GarbageBytes+s[2].RemainingCapacity() >= l1Bytes {
+			if l2GarbageBytes+s[2].RemainingCapacity() >= l1Bytes && (float64(l2GarbageBytes)/float64(s[2].maxSize) >= 0.1) {
 				plan[2] = Compact
 			} else {
 				plan[2] = PushDown
