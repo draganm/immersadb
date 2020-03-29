@@ -2,6 +2,7 @@ package wbbtree
 
 import (
 	"bytes"
+
 	"github.com/draganm/immersadb/store"
 	"github.com/pkg/errors"
 
